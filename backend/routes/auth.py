@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
 import os
 from datetime import datetime
 

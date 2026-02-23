@@ -8,13 +8,14 @@ from models.user import User, UserCreate, UserUpdate, UserChangePassword, UserIn
 from utils.password import hash_password, verify_password
 from middleware.auth import get_current_user, require_roles
 
-# Obtener la conexión a la base de datos
-from motor.motor_asyncio import AsyncIOMotorClient
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
 router = APIRouter(prefix="/users", tags=["Usuarios"])
+
+# Función helper para obtener la base de datos
+def get_db():
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.environ['MONGO_URL']
+    client = AsyncIOMotorClient(mongo_url)
+    return client[os.environ['DB_NAME']]
 
 @router.get("", response_model=List[User])
 async def get_users(current_user: dict = Depends(require_roles(["admin", "supervisor"]))):

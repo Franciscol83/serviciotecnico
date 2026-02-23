@@ -8,13 +8,14 @@ from utils.password import hash_password, verify_password
 from utils.jwt_handler import create_access_token
 from middleware.auth import get_current_user
 
-# Obtener la conexión a la base de datos
-from motor.motor_asyncio import AsyncIOMotorClient
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
+
+# Función helper para obtener la base de datos
+def get_db():
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_url = os.environ['MONGO_URL']
+    client = AsyncIOMotorClient(mongo_url)
+    return client[os.environ['DB_NAME']]
 
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, current_user: dict = Depends(get_current_user)):

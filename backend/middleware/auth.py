@@ -2,14 +2,13 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 from typing import Optional, List
-from motor.motor_asyncio import AsyncIOMotorDatabase
 import os
 
 from utils.jwt_handler import verify_token
 
 security = HTTPBearer()
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: AsyncIOMotorDatabase = None):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Obtener el usuario actual desde el token JWT
     """
@@ -30,10 +29,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     # Obtener usuario de la base de datos
     from motor.motor_asyncio import AsyncIOMotorClient
-    if db is None:
-        mongo_url = os.environ['MONGO_URL']
-        client = AsyncIOMotorClient(mongo_url)
-        db = client[os.environ['DB_NAME']]
+    mongo_url = os.environ['MONGO_URL']
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[os.environ['DB_NAME']]
     
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
     if user is None:

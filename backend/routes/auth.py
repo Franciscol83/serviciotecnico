@@ -22,6 +22,8 @@ async def register(user_data: UserCreate, current_user: dict = Depends(get_curre
     """
     Registrar un nuevo usuario (solo Admin puede crear usuarios)
     """
+    db = get_db()
+    
     # Solo admin puede crear usuarios
     if current_user["role"] != "admin":
         raise HTTPException(
@@ -57,6 +59,8 @@ async def login(credentials: UserLogin):
     """
     Iniciar sesión y obtener token JWT
     """
+    db = get_db()
+    
     # Buscar usuario por email
     user = await db.users.find_one({"email": credentials.email})
     if not user:

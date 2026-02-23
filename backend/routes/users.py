@@ -22,6 +22,7 @@ async def get_users(current_user: dict = Depends(require_roles(["admin", "superv
     """
     Obtener todos los usuarios (Admin y Supervisor)
     """
+    db = get_db()
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
     
     # Convertir timestamps
@@ -38,6 +39,7 @@ async def get_user(user_id: str, current_user: dict = Depends(require_roles(["ad
     """
     Obtener un usuario específico por ID
     """
+    db = get_db()
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(
@@ -59,6 +61,7 @@ async def update_user(user_id: str, user_data: UserUpdate, current_user: dict = 
     Actualizar un usuario (Admin y Supervisor)
     Solo Admin puede cambiar roles y desactivar usuarios
     """
+    db = get_db()
     # Verificar si el usuario existe
     existing_user = await db.users.find_one({"id": user_id})
     if not existing_user:
@@ -107,6 +110,7 @@ async def delete_user(user_id: str, current_user: dict = Depends(require_roles([
     """
     Eliminar un usuario (solo Admin)
     """
+    db = get_db()
     # No permitir que el admin se elimine a sí mismo
     if user_id == current_user["id"]:
         raise HTTPException(
@@ -129,6 +133,7 @@ async def change_password(user_id: str, password_data: UserChangePassword, curre
     Cambiar contraseña de un usuario
     Los usuarios solo pueden cambiar su propia contraseña
     """
+    db = get_db()
     # Solo el mismo usuario puede cambiar su contraseña
     if user_id != current_user["id"]:
         raise HTTPException(

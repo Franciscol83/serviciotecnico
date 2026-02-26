@@ -56,8 +56,8 @@ const AdminDashboard = () => {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Panel de Administrador</h1>
-        <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión técnica</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Panel de Administrador</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Bienvenido al sistema de gestión técnica</p>
       </div>
 
       {/* Stats */}
@@ -66,13 +66,13 @@ const AdminDashboard = () => {
           <div
             key={stat.name}
             onClick={() => navigate(stat.route)}
-            className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
             data-testid={`stat-${stat.name.toLowerCase().replace(/\s/g, '-')}`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.name}</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stat.value}</p>
               </div>
               <div className={`${stat.color} p-3 rounded-lg`}>
                 <stat.icon className="w-6 h-6 text-white" />
@@ -88,16 +88,16 @@ const AdminDashboard = () => {
           <div
             key={item.name}
             onClick={() => navigate(item.route)}
-            className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-100"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
             data-testid={`menu-${item.name.toLowerCase().replace(/\s/g, '-')}`}
           >
             <div className="flex items-start space-x-4">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <item.icon className="w-6 h-6 text-blue-600" />
+              <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                <item.icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{item.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
               </div>
             </div>
           </div>

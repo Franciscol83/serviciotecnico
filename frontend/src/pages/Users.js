@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Navbar from '@/components/layout/Navbar';
+import MainLayout from '@/components/layout/MainLayout';
 import { usersAPI, authAPI } from '@/api/client';
 import { Plus, Edit, Trash2, Mail, Phone, User, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 

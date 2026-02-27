@@ -354,7 +354,7 @@ const Users = () => {
           </div>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

@@ -1,0 +1,105 @@
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Optional, Literal, List
+from datetime import datetime, timezone
+import uuid
+
+# Estados de servicio
+EstadoServicio = Literal["pendiente_aprobacion", "aprobado", "en_proceso", "completado", "cancelado", "anulado"]
+
+# Prefijos de factura
+PrefijoFactura = Literal["MLP", "FE"]
+
+class ClienteInfo(BaseModel):
+    """Información del cliente"""
+    nombre: str
+    telefono: str
+    email: EmailStr
+    direccion: str
+
+class ModificacionServicio(BaseModel):
+    """Registro de modificación en el servicio"""
+    tipo: Literal["creacion", "aprobacion", "cambio_estado", "reasignacion", "anulacion", "modificacion"]
+    usuario_id: str
+    usuario_nombre: str
+    usuario_role: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    detalles: dict = {}
+
+class ServicioBase(BaseModel):
+    """Base model para servicio"""
+    cliente: ClienteInfo
+    descripcion: str
+    fecha_agendada: Optional[datetime] = None
+
+class ServicioCreate(ServicioBase):
+    """Model para crear servicio"""
+    tecnico_asignado_id: str
+
+class ServicioUpdate(BaseModel):
+    """Model para actualizar servicio"""
+    cliente: Optional[ClienteInfo] = None
+    descripcion: Optional[str] = None
+    tecnico_asignado_id: Optional[str] = None
+    fecha_agendada: Optional[datetime] = None
+    estado: Optional[EstadoServicio] = None
+    numero_factura: Optional[str] = None
+    prefijo_factura: Optional[PrefijoFactura] = None
+
+class ServicioAnular(BaseModel):
+    """Model para anular servicio"""
+    razon_anulacion: str
+
+class Servicio(ServicioBase):
+    """Model completo de servicio"""
+    model_config = ConfigDict(extra="ignore")
+    
+    # Identificación
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    caso_numero: str  # TN-2025-00001
+    caso_uuid: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    
+    # Estado
+    estado: EstadoServicio = "pendiente_aprobacion"
+    
+    # Técnico asignado
+    tecnico_asignado_id: str
+    tecnico_asignado_nombre: str = ""
+    tecnico_asignado_original: Optional[str] = None  # Para histórico
+    
+    # Facturación (se completa después)
+    numero_factura: Optional[str] = None
+    prefijo_factura: Optional[PrefijoFactura] = None
+    
+    # Fechas
+    fecha_creacion: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fecha_agendada: Optional[datetime] = None
+    fecha_completado: Optional[datetime] = None
+    fecha_anulado: Optional[datetime] = None
+    
+    # Auditoría - Creación
+    creado_por_id: str
+    creado_por_nombre: str
+    creado_por_role: str
+    
+    # Auditoría - Aprobación
+    aprobado_por_id: Optional[str] = None
+    aprobado_por_nombre: Optional[str] = None
+    fecha_aprobacion: Optional[datetime] = None
+    
+    # Auditoría - Anulación
+    anulado_por_id: Optional[str] = None
+    anulado_por_nombre: Optional[str] = None
+    razon_anulacion: Optional[str] = None
+    
+    # Histórico de modificaciones
+    modificaciones: List[ModificacionServicio] = []
+
+class ServicioStats(BaseModel):
+    """Estadísticas de servicios"""
+    total: int
+    pendiente_aprobacion: int
+    aprobado: int
+    en_proceso: int
+    completado: int
+    cancelado: int
+    anulado: int

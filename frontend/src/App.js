@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Users from "@/pages/Users";
+import Services from "@/pages/Services";
 
 // Componente para redirigir al dashboard o login
 const Home = () => {
@@ -47,21 +48,17 @@ function App() {
                 }
               />
 
-              {/* Placeholder para futuras rutas */}
+              {/* Servicios - Todos excepto rol inexistente */}
               <Route
                 path="/services"
                 element={
                   <ProtectedRoute>
-                    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                      <div className="text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Servicios</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">Próximamente en Fase 2</p>
-                      </div>
-                    </div>
+                    <Services />
                   </ProtectedRoute>
                 }
               />
 
+              {/* Placeholder para futuras rutas */}
               <Route
                 path="/calendar"
                 element={

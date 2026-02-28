@@ -56,4 +56,15 @@ export const usersAPI = {
   changePassword: (id, passwords) => apiClient.put(`/users/${id}/change-password`, passwords),
 };
 
+// Services API
+export const servicesAPI = {
+  getAll: (params) => apiClient.get('/services', { params }),
+  getById: (id) => apiClient.get(`/services/${id}`),
+  create: (data) => apiClient.post('/services', data),
+  update: (id, data) => apiClient.put(`/services/${id}`, data),
+  aprobar: (id) => apiClient.put(`/services/${id}/aprobar`),
+  anular: (id, data) => apiClient.put(`/services/${id}/anular`, data),
+  getStats: () => apiClient.get('/services/stats'),
+};
+
 export default apiClient;

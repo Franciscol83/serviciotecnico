@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 
 from models.service import (
     Servicio, ServicioCreate, ServicioUpdate, ServicioAnular, 
-    ServicioStats, ModificacionServicio, EstadoServicio
+    ServicioStats, ModificacionServicio, EstadoServicio, 
+    AgregarItemServicio, ItemServicio
 )
 from middleware.auth import get_current_user, require_roles
 
@@ -47,13 +48,22 @@ async def create_service(
     current_user: dict = Depends(require_roles(["admin", "supervisor", "asesor"]))
 ):
     """
-    Crear un nuevo servicio
+    Crear una nueva orden de servicio
+    - Puede incluir múltiples servicios en items_adicionales
     - Asesor: crea con estado 'pendiente_aprobacion'
     - Supervisor/Admin: crea con estado 'aprobado'
+    - Si ubicacion_servicio es 'en_local', fecha_agendada no es requerida
     """
     db = get_db()
     
-    # Verificar que el tipo de servicio existe
+    # Validar fecha agendada según ubicación
+    if service_data.ubicacion_servicio == "por_fuera" and not service_data.fecha_agendada:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fecha agendada es requerida para servicios por fuera del local"
+        )
+    
+    # Verificar que el tipo de servicio principal existe
     tipo_servicio = await db.service_types.find_one({"id": service_data.tipo_servicio_id, "activo": True})
     if not tipo_servicio:
         raise HTTPException(
@@ -75,12 +85,35 @@ async def create_service(
     # Determinar estado inicial según rol
     estado_inicial = "aprobado" if current_user["role"] in ["admin", "supervisor"] else "pendiente_aprobacion"
     
+    # Procesar items adicionales
+    items_servicio = []
+    tipos_servicios_nombres = [tipo_servicio["nombre"]]
+    
+    for item_data in service_data.items_adicionales:
+        tipo_adicional = await db.service_types.find_one({"id": item_data["tipo_servicio_id"], "activo": True})
+        if not tipo_adicional:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tipo de servicio {item_data['tipo_servicio_id']} no encontrado"
+            )
+        
+        item = ItemServicio(
+            tipo_servicio_id=item_data["tipo_servicio_id"],
+            tipo_servicio_nombre=tipo_adicional["nombre"],
+            observaciones=item_data.get("observaciones", ""),
+            agregado_por_id=current_user["id"],
+            agregado_por_nombre=current_user["nombre_completo"]
+        )
+        items_servicio.append(item)
+        tipos_servicios_nombres.append(tipo_adicional["nombre"])
+    
     # Crear servicio
-    service_dict = service_data.model_dump()
+    service_dict = service_data.model_dump(exclude={"items_adicionales"})
     service_obj = Servicio(
         **service_dict,
         caso_numero=caso_numero,
         tipo_servicio_nombre=tipo_servicio["nombre"],
+        items_servicio=items_servicio,
         estado=estado_inicial,
         tecnico_asignado_nombre=tecnico["nombre_completo"],
         tecnico_asignado_original=service_data.tecnico_asignado_id,
@@ -104,7 +137,9 @@ async def create_service(
         detalles={
             "estado": estado_inicial,
             "tecnico": tecnico["nombre_completo"],
-            "tipo_servicio": tipo_servicio["nombre"]
+            "servicios": tipos_servicios_nombres,
+            "ubicacion": service_data.ubicacion_servicio,
+            "total_servicios": len(tipos_servicios_nombres)
         }
     )
     service_obj.modificaciones.append(modificacion)
@@ -120,6 +155,10 @@ async def create_service(
     # Serializar modificaciones
     for mod in doc['modificaciones']:
         mod['timestamp'] = mod['timestamp'].isoformat()
+    
+    # Serializar items de servicio
+    for item in doc['items_servicio']:
+        item['agregado_en'] = item['agregado_en'].isoformat()
     
     # Insertar en la base de datos
     await db.services.insert_one(doc)
@@ -176,6 +215,17 @@ async def get_services(
         for mod in service.get('modificaciones', []):
             if isinstance(mod['timestamp'], str):
                 mod['timestamp'] = datetime.fromisoformat(mod['timestamp'])
+        
+        # Convertir timestamps en items de servicio
+        for item in service.get('items_servicio', []):
+            if isinstance(item.get('agregado_en'), str):
+                item['agregado_en'] = datetime.fromisoformat(item['agregado_en'])
+        
+        # Asegurar que campos nuevos existan (compatibilidad con datos viejos)
+        if 'ubicacion_servicio' not in service:
+            service['ubicacion_servicio'] = 'por_fuera'
+        if 'items_servicio' not in service:
+            service['items_servicio'] = []
     
     return services
 
@@ -468,5 +518,107 @@ async def anular_service(
     for mod in updated_service.get('modificaciones', []):
         if isinstance(mod['timestamp'], str):
             mod['timestamp'] = datetime.fromisoformat(mod['timestamp'])
+    
+    return Servicio(**updated_service)
+
+
+
+@router.post("/{service_id}/agregar-item", response_model=Servicio)
+async def agregar_item_servicio(
+    service_id: str,
+    item_data: AgregarItemServicio,
+    current_user: dict = Depends(require_roles(["admin", "supervisor", "asesor"]))
+):
+    """
+    Agregar un servicio adicional a una orden existente
+    Registra en el historial quién y cuándo se agregó
+    """
+    db = get_db()
+    
+    # Verificar que la orden existe
+    service = await db.services.find_one({"id": service_id})
+    if not service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Orden de servicio no encontrada"
+        )
+    
+    # Verificar que el tipo de servicio existe
+    tipo_servicio = await db.service_types.find_one({"id": item_data.tipo_servicio_id, "activo": True})
+    if not tipo_servicio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tipo de servicio no encontrado o inactivo"
+        )
+    
+    # Verificar permisos (similar a editar)
+    if current_user["role"] == "asesor":
+        if service["creado_por_id"] != current_user["id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puedes agregar servicios a tus propias órdenes"
+            )
+        if service["estado"] != "pendiente_aprobacion":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puedes agregar servicios a órdenes pendientes de aprobación"
+            )
+    
+    # Crear nuevo item
+    nuevo_item = ItemServicio(
+        tipo_servicio_id=item_data.tipo_servicio_id,
+        tipo_servicio_nombre=tipo_servicio["nombre"],
+        observaciones=item_data.observaciones,
+        agregado_por_id=current_user["id"],
+        agregado_por_nombre=current_user["nombre_completo"]
+    )
+    
+    # Registrar modificación
+    modificacion = ModificacionServicio(
+        tipo="agregar_item",
+        usuario_id=current_user["id"],
+        usuario_nombre=current_user["nombre_completo"],
+        usuario_role=current_user["role"],
+        detalles={
+            "servicio_agregado": tipo_servicio["nombre"],
+            "observaciones": item_data.observaciones
+        }
+    )
+    
+    # Actualizar en la base de datos
+    nuevo_item_dict = nuevo_item.model_dump()
+    nuevo_item_dict['agregado_en'] = nuevo_item_dict['agregado_en'].isoformat()
+    
+    modificacion_dict = modificacion.model_dump()
+    modificacion_dict['timestamp'] = modificacion_dict['timestamp'].isoformat()
+    
+    await db.services.update_one(
+        {"id": service_id},
+        {
+            "$push": {
+                "items_servicio": nuevo_item_dict,
+                "modificaciones": modificacion_dict
+            }
+        }
+    )
+    
+    # Obtener servicio actualizado
+    updated_service = await db.services.find_one({"id": service_id}, {"_id": 0})
+    
+    # Convertir timestamps
+    if isinstance(updated_service.get('fecha_creacion'), str):
+        updated_service['fecha_creacion'] = datetime.fromisoformat(updated_service['fecha_creacion'])
+    if updated_service.get('fecha_agendada') and isinstance(updated_service['fecha_agendada'], str):
+        updated_service['fecha_agendada'] = datetime.fromisoformat(updated_service['fecha_agendada'])
+    if updated_service.get('fecha_aprobacion') and isinstance(updated_service['fecha_aprobacion'], str):
+        updated_service['fecha_aprobacion'] = datetime.fromisoformat(updated_service['fecha_aprobacion'])
+    
+    for mod in updated_service.get('modificaciones', []):
+        if isinstance(mod['timestamp'], str):
+            mod['timestamp'] = datetime.fromisoformat(mod['timestamp'])
+    
+    for item in updated_service.get('items_servicio', []):
+        if isinstance(item['agregado_en'], str):
+            item['agregado_en'] = datetime.fromisoformat(item['agregado_en'])
     
     return Servicio(**updated_service)

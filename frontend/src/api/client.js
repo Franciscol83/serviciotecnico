@@ -64,6 +64,7 @@ export const servicesAPI = {
   update: (id, data) => apiClient.put(`/services/${id}`, data),
   aprobar: (id) => apiClient.put(`/services/${id}/aprobar`),
   anular: (id, data) => apiClient.put(`/services/${id}/anular`, data),
+  agregarItem: (id, data) => apiClient.post(`/services/${id}/agregar-item`, data),
   getStats: () => apiClient.get('/services/stats'),
 };
 

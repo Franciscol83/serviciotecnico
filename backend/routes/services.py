@@ -53,6 +53,7 @@ async def create_service(
     - Asesor: crea con estado 'pendiente_aprobacion'
     - Supervisor/Admin: crea con estado 'aprobado'
     - Si ubicacion_servicio es 'en_local', fecha_agendada no es requerida
+    - Si ubicacion_servicio es 'por_fuera', requiere fecha_agendada y datos de facturación
     """
     db = get_db()
     
@@ -62,6 +63,24 @@ async def create_service(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Fecha agendada es requerida para servicios por fuera del local"
         )
+    
+    # Validar datos de facturación para servicios por fuera
+    if service_data.ubicacion_servicio == "por_fuera":
+        if not service_data.cliente.tipo_documento:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tipo de documento es requerido para servicios por fuera del local"
+            )
+        if not service_data.cliente.numero_documento:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Número de documento es requerido para servicios por fuera del local"
+            )
+        if not service_data.cliente.medio_pago:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Medio de pago es requerido para servicios por fuera del local"
+            )
     
     # Verificar que el tipo de servicio principal existe
     tipo_servicio = await db.service_types.find_one({"id": service_data.tipo_servicio_id, "activo": True})

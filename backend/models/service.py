@@ -12,12 +12,22 @@ PrefijoFactura = Literal["MLP", "FE"]
 # Ubicación del servicio
 UbicacionServicio = Literal["en_local", "por_fuera"]
 
+# Tipo de documento
+TipoDocumento = Literal["cedula", "nit", "pasaporte", "cedula_extranjeria", "registro_civil"]
+
+# Medio de pago
+MedioPago = Literal["efectivo", "tarjeta_debito", "tarjeta_credito", "garantia", "credito", "transferencia"]
+
 class ClienteInfo(BaseModel):
     """Información del cliente"""
     nombre: str
     telefono: str
     email: EmailStr
     direccion: str
+    # Información de facturación (requerida para servicios por fuera)
+    tipo_documento: Optional[TipoDocumento] = None
+    numero_documento: Optional[str] = None
+    medio_pago: Optional[MedioPago] = None
 
 class ItemServicio(BaseModel):
     """Item individual de servicio dentro de una orden"""

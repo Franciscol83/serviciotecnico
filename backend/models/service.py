@@ -28,7 +28,8 @@ class ModificacionServicio(BaseModel):
 class ServicioBase(BaseModel):
     """Base model para servicio"""
     cliente: ClienteInfo
-    descripcion: str
+    tipo_servicio_id: str  # ID del tipo de servicio del catálogo
+    observaciones: str = ""  # Detalles específicos del caso
     fecha_agendada: Optional[datetime] = None
 
 class ServicioCreate(ServicioBase):
@@ -38,7 +39,8 @@ class ServicioCreate(ServicioBase):
 class ServicioUpdate(BaseModel):
     """Model para actualizar servicio"""
     cliente: Optional[ClienteInfo] = None
-    descripcion: Optional[str] = None
+    tipo_servicio_id: Optional[str] = None
+    observaciones: Optional[str] = None
     tecnico_asignado_id: Optional[str] = None
     fecha_agendada: Optional[datetime] = None
     estado: Optional[EstadoServicio] = None
@@ -57,6 +59,9 @@ class Servicio(ServicioBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     caso_numero: str  # TN-2025-00001
     caso_uuid: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    
+    # Tipo de servicio (del catálogo)
+    tipo_servicio_nombre: str = ""  # Cached para performance
     
     # Estado
     estado: EstadoServicio = "pendiente_aprobacion"

@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Importar rutas
-from routes import auth, users, services
+from routes import auth, users, services, service_types
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -35,6 +35,7 @@ async def health_check():
 # Include routers
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
+api_router.include_router(service_types.router)
 api_router.include_router(services.router)
 
 # Include the router in the main app

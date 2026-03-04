@@ -53,6 +53,14 @@ async def create_service(
     """
     db = get_db()
     
+    # Verificar que el tipo de servicio existe
+    tipo_servicio = await db.service_types.find_one({"id": service_data.tipo_servicio_id, "activo": True})
+    if not tipo_servicio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tipo de servicio no encontrado o inactivo"
+        )
+    
     # Verificar que el técnico existe
     tecnico = await db.users.find_one({"id": service_data.tecnico_asignado_id, "role": "tecnico"})
     if not tecnico:
@@ -72,6 +80,7 @@ async def create_service(
     service_obj = Servicio(
         **service_dict,
         caso_numero=caso_numero,
+        tipo_servicio_nombre=tipo_servicio["nombre"],
         estado=estado_inicial,
         tecnico_asignado_nombre=tecnico["nombre_completo"],
         tecnico_asignado_original=service_data.tecnico_asignado_id,
@@ -94,7 +103,8 @@ async def create_service(
         usuario_role=current_user["role"],
         detalles={
             "estado": estado_inicial,
-            "tecnico": tecnico["nombre_completo"]
+            "tecnico": tecnico["nombre_completo"],
+            "tipo_servicio": tipo_servicio["nombre"]
         }
     )
     service_obj.modificaciones.append(modificacion)

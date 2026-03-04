@@ -40,6 +40,7 @@ const Sidebar = () => {
     const roleSpecificItems = {
       admin: [
         { name: 'Usuarios', icon: Users, path: '/users', roles: ['admin', 'supervisor'] },
+        { name: 'Tipos de Servicios', icon: Package, path: '/service-types', roles: ['admin', 'supervisor'] },
         { name: 'Servicios', icon: FileText, path: '/services', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Inventario', icon: Package, path: '/inventory', roles: ['admin', 'supervisor'] },
@@ -48,6 +49,7 @@ const Sidebar = () => {
       ],
       supervisor: [
         { name: 'Usuarios', icon: Users, path: '/users', roles: ['admin', 'supervisor'] },
+        { name: 'Tipos de Servicios', icon: Package, path: '/service-types', roles: ['admin', 'supervisor'] },
         { name: 'Servicios', icon: FileText, path: '/services', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Inventario', icon: Package, path: '/inventory', roles: ['admin', 'supervisor'] },

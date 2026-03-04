@@ -67,4 +67,13 @@ export const servicesAPI = {
   getStats: () => apiClient.get('/services/stats'),
 };
 
+// Service Types API
+export const serviceTypesAPI = {
+  getAll: (params) => apiClient.get('/service-types', { params }),
+  getById: (id) => apiClient.get(`/service-types/${id}`),
+  create: (data) => apiClient.post('/service-types', data),
+  update: (id, data) => apiClient.put(`/service-types/${id}`, data),
+  delete: (id) => apiClient.delete(`/service-types/${id}`),
+};
+
 export default apiClient;

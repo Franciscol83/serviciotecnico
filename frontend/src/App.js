@@ -8,6 +8,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Users from "@/pages/Users";
 import Services from "@/pages/Services";
+import ServiceTypes from "@/pages/ServiceTypes";
 
 // Componente para redirigir al dashboard o login
 const Home = () => {
@@ -54,6 +55,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Services />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Tipos de Servicios - Solo Admin y Supervisor */}
+              <Route
+                path="/service-types"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "supervisor"]}>
+                    <ServiceTypes />
                   </ProtectedRoute>
                 }
               />

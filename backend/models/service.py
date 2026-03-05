@@ -52,6 +52,7 @@ class ServicioBase(BaseModel):
     cliente: ClienteInfo
     tipo_servicio_id: str  # ID del tipo de servicio del catálogo
     observaciones: str = ""  # Detalles específicos del caso
+    recomendaciones: str = ""  # Recomendaciones del asesor o notas internas
     ubicacion_servicio: UbicacionServicio = "por_fuera"
     fecha_agendada: Optional[datetime] = None
 

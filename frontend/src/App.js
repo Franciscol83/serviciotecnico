@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import Users from "@/pages/Users";
 import Services from "@/pages/Services";
 import ServiceTypes from "@/pages/ServiceTypes";
+import Calendar from "@/pages/Calendar";
 
 // Componente para redirigir al dashboard o login
 const Home = () => {
@@ -69,17 +70,12 @@ function App() {
                 }
               />
 
-              {/* Placeholder para futuras rutas */}
+              {/* Calendario - Todos pueden ver */}
               <Route
                 path="/calendar"
                 element={
                   <ProtectedRoute>
-                    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                      <div className="text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Calendario</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">Próximamente en Fase 3</p>
-                      </div>
-                    </div>
+                    <Calendar />
                   </ProtectedRoute>
                 }
               />

@@ -43,6 +43,7 @@ const Services = () => {
     cliente_tipo_documento: '',
     cliente_numero_documento: '',
     cliente_medio_pago: '',
+    recomendaciones: '',
     ubicacion_servicio: 'por_fuera',
     servicios: [{ tipo_servicio_id: '', observaciones: '' }],
     tecnico_asignado_id: '',
@@ -103,6 +104,7 @@ const Services = () => {
       cliente_tipo_documento: '',
       cliente_numero_documento: '',
       cliente_medio_pago: '',
+      recomendaciones: '',
       ubicacion_servicio: 'por_fuera',
       servicios: [{ tipo_servicio_id: '', observaciones: '' }],
       tecnico_asignado_id: '',
@@ -161,20 +163,14 @@ const Services = () => {
           return;
         }
 
-        // Validar datos de facturación si es "por fuera"
-        if (formData.ubicacion_servicio === 'por_fuera') {
-          if (!formData.cliente_tipo_documento) {
-            showMessage('El tipo de documento es requerido para servicios por fuera del local', 'error');
-            return;
-          }
-          if (!formData.cliente_numero_documento) {
-            showMessage('El número de documento es requerido para servicios por fuera del local', 'error');
-            return;
-          }
-          if (!formData.cliente_medio_pago) {
-            showMessage('El medio de pago es requerido para servicios por fuera del local', 'error');
-            return;
-          }
+        // Validar datos de facturación (obligatorios siempre excepto medio_pago)
+        if (!formData.cliente_tipo_documento) {
+          showMessage('El tipo de documento es requerido', 'error');
+          return;
+        }
+        if (!formData.cliente_numero_documento) {
+          showMessage('El número de documento es requerido', 'error');
+          return;
         }
 
         const [primerServicio, ...serviciosAdicionales] = formData.servicios;
@@ -185,12 +181,13 @@ const Services = () => {
             telefono: formData.cliente_telefono,
             email: formData.cliente_email,
             direccion: formData.cliente_direccion,
-            tipo_documento: formData.ubicacion_servicio === 'por_fuera' ? formData.cliente_tipo_documento : null,
-            numero_documento: formData.ubicacion_servicio === 'por_fuera' ? formData.cliente_numero_documento : null,
-            medio_pago: formData.ubicacion_servicio === 'por_fuera' ? formData.cliente_medio_pago : null,
+            tipo_documento: formData.cliente_tipo_documento,
+            numero_documento: formData.cliente_numero_documento,
+            medio_pago: formData.cliente_medio_pago || null,
           },
           tipo_servicio_id: primerServicio.tipo_servicio_id,
           observaciones: primerServicio.observaciones,
+          recomendaciones: formData.recomendaciones,
           ubicacion_servicio: formData.ubicacion_servicio,
           tecnico_asignado_id: formData.tecnico_asignado_id,
           fecha_agendada: formData.fecha_agendada || null,
@@ -644,69 +641,69 @@ const ServiceModal = ({
               </div>
             </div>
 
-            {/* Datos de Facturación - Solo si es por fuera */}
-            {formData.ubicacion_servicio === 'por_fuera' && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Datos de Facturación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tipo de Documento *
-                    </label>
-                    <select
-                      value={formData.cliente_tipo_documento}
-                      onChange={(e) => setFormData({ ...formData, cliente_tipo_documento: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      required={formData.ubicacion_servicio === 'por_fuera'}
-                    >
-                      <option value="">Seleccionar...</option>
-                      <option value="cedula">Cédula de Ciudadanía</option>
-                      <option value="nit">NIT</option>
-                      <option value="cedula_extranjeria">Cédula de Extranjería</option>
-                      <option value="pasaporte">Pasaporte</option>
-                      <option value="registro_civil">Registro Civil</option>
-                    </select>
-                  </div>
+            {/* Datos de Facturación - Siempre visibles */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                Datos de Facturación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Tipo de Documento *
+                  </label>
+                  <select
+                    value={formData.cliente_tipo_documento}
+                    onChange={(e) => setFormData({ ...formData, cliente_tipo_documento: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="cedula">Cédula de Ciudadanía</option>
+                    <option value="nit">NIT</option>
+                    <option value="cedula_extranjeria">Cédula de Extranjería</option>
+                    <option value="pasaporte">Pasaporte</option>
+                    <option value="registro_civil">Registro Civil</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Número de Documento *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.cliente_numero_documento}
-                      onChange={(e) => setFormData({ ...formData, cliente_numero_documento: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="Ej: 1234567890"
-                      required={formData.ubicacion_servicio === 'por_fuera'}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Número de Documento *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cliente_numero_documento}
+                    onChange={(e) => setFormData({ ...formData, cliente_numero_documento: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ej: 1234567890"
+                    required
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Medio de Pago *
-                    </label>
-                    <select
-                      value={formData.cliente_medio_pago}
-                      onChange={(e) => setFormData({ ...formData, cliente_medio_pago: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      required={formData.ubicacion_servicio === 'por_fuera'}
-                    >
-                      <option value="">Seleccionar...</option>
-                      <option value="efectivo">Efectivo</option>
-                      <option value="tarjeta_debito">Tarjeta Débito</option>
-                      <option value="tarjeta_credito">Tarjeta Crédito</option>
-                      <option value="transferencia">Transferencia</option>
-                      <option value="credito">Crédito</option>
-                      <option value="garantia">Garantía</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Medio de Pago
+                  </label>
+                  <select
+                    value={formData.cliente_medio_pago}
+                    onChange={(e) => setFormData({ ...formData, cliente_medio_pago: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Seleccionar (Opcional)...</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta_debito">Tarjeta Débito</option>
+                    <option value="tarjeta_credito">Tarjeta Crédito</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="credito">Crédito</option>
+                    <option value="garantia">Garantía</option>
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Puede registrarse posteriormente
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Asignación */}
             <div>
@@ -823,6 +820,24 @@ const ServiceModal = ({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Recomendaciones */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                Recomendaciones
+              </h3>
+              <textarea
+                value={formData.recomendaciones}
+                onChange={(e) => setFormData({ ...formData, recomendaciones: e.target.value })}
+                rows="3"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Ej: Cliente prefiere horario matutino. Requiere instalación urgente..."
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Notas internas, recomendaciones del asesor o detalles importantes para el supervisor
+              </p>
             </div>
           </>
         ) : (

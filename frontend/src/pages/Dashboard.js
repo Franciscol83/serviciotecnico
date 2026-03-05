@@ -1,306 +1,309 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
-import { Users, Calendar, FileText, Package, DollarSign, MessageSquare, BarChart3, Clock } from 'lucide-react';
+import { reportesAPI, servicesAPI } from '@/api/client';
+import { 
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+} from 'recharts';
+import { 
+  TrendingUp, Users, FileText, Clock, CheckCircle, 
+  AlertCircle, Calendar, Package 
+} from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [services, setServices] = useState([]);
 
-  const getDashboardContent = () => {
-    switch (user?.role) {
-      case 'admin':
-        return <AdminDashboard />;
-      case 'supervisor':
-        return <SupervisorDashboard />;
-      case 'asesor':
-        return <AsesorDashboard />;
-      case 'tecnico':
-        return <TecnicoDashboard />;
-      default:
-        return <div>Rol no reconocido</div>;
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [statsResponse, servicesResponse] = await Promise.all([
+        reportesAPI.getEstadisticas(),
+        servicesAPI.getAll()
+      ]);
+      setStats(statsResponse.data);
+      setServices(servicesResponse.data);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Colores para gráficas
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899'];
+
+  // Preparar datos para gráfica de estados
+  const getEstadosData = () => {
+    if (!stats?.servicios_por_estado) return [];
+    return Object.entries(stats.servicios_por_estado).map(([estado, cantidad]) => ({
+      name: estado.replace(/_/g, ' ').toUpperCase(),
+      value: cantidad
+    }));
+  };
+
+  // Preparar datos para gráfica de técnicos
+  const getTecnicosData = () => {
+    if (!stats?.servicios_por_tecnico) return [];
+    return Object.entries(stats.servicios_por_tecnico).map(([tecnico, cantidad]) => ({
+      name: tecnico,
+      servicios: cantidad
+    })).slice(0, 8); // Top 8
+  };
+
+  // Preparar datos para cumplimiento
+  const getCumplimientoData = () => {
+    if (!stats?.cumplimiento_tecnicos) return [];
+    return stats.cumplimiento_tecnicos.map(t => ({
+      name: t.tecnico,
+      tasa: t.tasa_cumplimiento,
+      completados: t.completados,
+      asignados: t.total_asignados
+    }));
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {getDashboardContent()}
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Dashboard - Tecno Nacho SAS
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Bienvenido, {user?.nombre_completo}
+          </p>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Servicios */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Servicios</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                  {stats?.resumen?.total_servicios || 0}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Reportes */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Reportes Completados</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                  {stats?.resumen?.total_reportes || 0}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Técnicos Activos */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Técnicos Activos</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                  {stats?.resumen?.total_tecnicos || 0}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <Users className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Tiempo Promedio */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border-l-4 border-amber-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tiempo Promedio</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                  {stats?.resumen?.tiempo_promedio_horas || 0}h
+                </p>
+              </div>
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <Clock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gráficas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Servicios por Mes */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2" />
+              Servicios por Mes
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stats?.servicios_por_mes || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Servicios por Estado */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              Servicios por Estado
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={getEstadosData()}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {getEstadosData().map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Más Gráficas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Servicios por Técnico */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Servicios por Técnico
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={getTecnicosData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="servicios" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Cumplimiento por Técnico */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Tasa de Cumplimiento (%)
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={getCumplimientoData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="tasa" fill="#8b5cf6" name="Cumplimiento %" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Tabla de Cumplimiento Detallado */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Detalle de Cumplimiento por Técnico
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Técnico
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Asignados
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Completados
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Tasa de Cumplimiento
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {stats?.cumplimiento_tecnicos?.map((tecnico, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {tecnico.tecnico}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {tecnico.total_asignados}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {tecnico.completados}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              tecnico.tasa_cumplimiento >= 80
+                                ? 'bg-green-500'
+                                : tecnico.tasa_cumplimiento >= 60
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
+                            }`}
+                            style={{ width: `${tecnico.tasa_cumplimiento}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {tecnico.tasa_cumplimiento.toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </MainLayout>
-  );
-};
-
-// Dashboard para Admin
-const AdminDashboard = () => {
-  const navigate = useNavigate();
-
-  const stats = [
-    { name: 'Total Usuarios', value: '0', icon: Users, color: 'bg-blue-500', route: '/users' },
-    { name: 'Servicios Activos', value: '0', icon: FileText, color: 'bg-green-500', route: '/services' },
-    { name: 'Técnicos Disponibles', value: '0', icon: Users, color: 'bg-purple-500', route: '/users' },
-    { name: 'Inventario', value: '0', icon: Package, color: 'bg-orange-500', route: '/inventory' },
-  ];
-
-  const menuItems = [
-    { name: 'Gestión de Usuarios', icon: Users, route: '/users', description: 'Crear y administrar usuarios del sistema' },
-    { name: 'Servicios', icon: FileText, route: '/services', description: 'Ver y gestionar todos los servicios' },
-    { name: 'Calendario', icon: Calendar, route: '/calendar', description: 'Ver agenda de todos los técnicos' },
-    { name: 'Inventario', icon: Package, route: '/inventory', description: 'Gestionar materiales y herramientas' },
-    { name: 'Reportes', icon: BarChart3, route: '/reports', description: 'Estadísticas y reportes del sistema' },
-    { name: 'Chat', icon: MessageSquare, route: '/chat', description: 'Mensajería del equipo' },
-  ];
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Panel de Administrador</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Bienvenido al sistema de gestión técnica</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.name}
-            onClick={() => navigate(stat.route)}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
-            data-testid={`stat-${stat.name.toLowerCase().replace(/\s/g, '-')}`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{stat.value}</p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Menu Items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {menuItems.map((item) => (
-          <div
-            key={item.name}
-            onClick={() => navigate(item.route)}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
-            data-testid={`menu-${item.name.toLowerCase().replace(/\s/g, '-')}`}
-          >
-            <div className="flex items-start space-x-4">
-              <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                <item.icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{item.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.description}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Dashboard para Supervisor
-const SupervisorDashboard = () => {
-  const navigate = useNavigate();
-
-  const stats = [
-    { name: 'Servicios Pendientes', value: '0', icon: Clock, color: 'bg-yellow-500' },
-    { name: 'En Proceso', value: '0', icon: FileText, color: 'bg-blue-500' },
-    { name: 'Completados Hoy', value: '0', icon: BarChart3, color: 'bg-green-500' },
-    { name: 'Técnicos Activos', value: '0', icon: Users, color: 'bg-purple-500' },
-  ];
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Panel de Supervisor</h1>
-        <p className="text-gray-600 mt-2">Gestiona y supervisa los servicios técnicos</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => navigate('/services/new')}
-            className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-          >
-            <FileText className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Crear Servicio</p>
-          </button>
-          <button
-            onClick={() => navigate('/calendar')}
-            className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-          >
-            <Calendar className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Ver Calendario</p>
-          </button>
-          <button
-            onClick={() => navigate('/users')}
-            className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
-          >
-            <Users className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Ver Técnicos</p>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Dashboard para Asesor
-const AsesorDashboard = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Panel de Asesor de Ventas</h1>
-        <p className="text-gray-600 mt-2">Gestiona tus clientes y agenda servicios</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Mis Servicios</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-green-500 p-3 rounded-lg">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pendientes Aprobación</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-yellow-500 p-3 rounded-lg">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completados</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button
-            onClick={() => navigate('/services/new')}
-            className="p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-          >
-            <FileText className="w-10 h-10 text-green-600 mx-auto mb-2" />
-            <p className="font-medium text-gray-700">Crear Nuevo Servicio</p>
-            <p className="text-sm text-gray-500 mt-1">Agendar servicio con cliente</p>
-          </button>
-          <button
-            onClick={() => navigate('/calendar')}
-            className="p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-          >
-            <Calendar className="w-10 h-10 text-blue-600 mx-auto mb-2" />
-            <p className="font-medium text-gray-700">Ver Calendario</p>
-            <p className="text-sm text-gray-500 mt-1">Disponibilidad de técnicos</p>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Dashboard para Técnico
-const TecnicoDashboard = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Panel de Técnico</h1>
-        <p className="text-gray-600 mt-2">Tus servicios y agenda</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Servicios Hoy</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <Calendar className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">En Proceso</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-yellow-500 p-3 rounded-lg">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completados</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-            </div>
-            <div className="bg-green-500 p-3 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Próximos Servicios</h2>
-        <div className="text-center py-12 text-gray-500">
-          <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p>No tienes servicios agendados para hoy</p>
-        </div>
-      </div>
-    </div>
   );
 };
 

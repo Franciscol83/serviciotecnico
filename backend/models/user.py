@@ -14,6 +14,7 @@ class UserProfile(BaseModel):
     documento_identidad: Optional[str] = None
     fecha_nacimiento: Optional[str] = None
     foto_url: Optional[str] = None
+    codigo_worldoffice: Optional[str] = None  # Código único en WorldOffice
 
 class UserBase(BaseModel):
     """Base model para usuario"""

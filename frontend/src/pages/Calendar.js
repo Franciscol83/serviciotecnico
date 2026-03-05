@@ -66,31 +66,23 @@ const Calendar = () => {
   // Convertir servicios a eventos de FullCalendar
   const getEvents = () => {
     return services.map(service => {
-      // Colores por técnico
-      const tecnicoIndex = tecnicos.findIndex(t => t.id === service.tecnico_asignado_id);
-      const colors = [
-        '#3b82f6', // blue
-        '#10b981', // green
-        '#f59e0b', // amber
-        '#8b5cf6', // purple
-        '#ef4444', // red
-        '#06b6d4', // cyan
-        '#ec4899', // pink
-      ];
-      const color = colors[tecnicoIndex % colors.length];
+      // TODOS los eventos del mismo color (azul)
+      const color = '#3b82f6'; // Azul uniforme para todos los servicios
 
       // Formatear hora
       const fecha = new Date(service.fecha_agendada);
       const hora = fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-      // Título más descriptivo
-      const titulo = `${hora} - ${service.caso_numero}\n${service.cliente.nombre}\n${service.tipo_servicio_nombre}`;
+      // Título más descriptivo con técnico
+      const tecnico = tecnicos.find(t => t.id === service.tecnico_asignado_id);
+      const tecnicoNombre = tecnico ? tecnico.nombre_completo : 'Sin asignar';
+      const titulo = `${hora} - ${service.caso_numero}\n${service.cliente.nombre}\n${tecnicoNombre}`;
 
       return {
         id: service.id,
         title: titulo,
         start: service.fecha_agendada,
-        end: service.fecha_agendada, // Podríamos calcular duración estimada
+        end: service.fecha_agendada,
         backgroundColor: color,
         borderColor: color,
         textColor: '#ffffff',
@@ -99,6 +91,18 @@ const Calendar = () => {
         },
       };
     });
+  };
+
+  // Obtener técnicos ocupados en el rango visible del calendario
+  const getTecnicosOcupados = () => {
+    const tecnicosOcupadosIds = new Set(services.map(s => s.tecnico_asignado_id));
+    return tecnicos.filter(t => tecnicosOcupadosIds.has(t.id));
+  };
+
+  // Obtener técnicos disponibles
+  const getTecnicosDisponibles = () => {
+    const tecnicosOcupadosIds = new Set(services.map(s => s.tecnico_asignado_id));
+    return tecnicos.filter(t => !tecnicosOcupadosIds.has(t.id));
   };
 
   // Manejar clic en evento
@@ -268,8 +272,8 @@ const Calendar = () => {
               events={getEvents()}
               eventClick={handleEventClick}
               height="auto"
-              slotMinTime="07:00:00"
-              slotMaxTime="20:00:00"
+              slotMinTime="00:00:00"
+              slotMaxTime="24:00:00"
               allDaySlot={false}
               expandRows={true}
               nowIndicator={true}
@@ -285,28 +289,60 @@ const Calendar = () => {
           )}
         </div>
 
-        {/* Leyenda de colores */}
+        {/* Leyenda de técnicos: Ocupados vs Disponibles */}
         <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Técnicos:</h3>
-          <div className="flex flex-wrap gap-4">
-            {tecnicos.map((tecnico, index) => {
-              const colors = [
-                '#3b82f6',
-                '#10b981',
-                '#f59e0b',
-                '#8b5cf6',
-                '#ef4444',
-                '#06b6d4',
-                '#ec4899',
-              ];
-              const color = colors[index % colors.length];
-              return (
-                <div key={tecnico.id} className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: color }}></div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{tecnico.nombre_completo}</span>
-                </div>
-              );
-            })}
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Estado de Técnicos:</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Técnicos Ocupados */}
+            <div>
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-4 h-4 rounded bg-red-500"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Ocupados ({getTecnicosOcupados().length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {getTecnicosOcupados().length > 0 ? (
+                  getTecnicosOcupados().map((tecnico) => (
+                    <div key={tecnico.id} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                      <User className="w-3 h-3" />
+                      <span>{tecnico.nombre_completo}</span>
+                      {tecnico.profile?.codigo_worldoffice && (
+                        <span className="text-xs text-gray-500">({tecnico.profile.codigo_worldoffice})</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-500 italic">Ningún técnico ocupado</p>
+                )}
+              </div>
+            </div>
+
+            {/* Técnicos Disponibles */}
+            <div>
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-4 h-4 rounded bg-green-500"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Disponibles ({getTecnicosDisponibles().length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {getTecnicosDisponibles().length > 0 ? (
+                  getTecnicosDisponibles().map((tecnico) => (
+                    <div key={tecnico.id} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                      <User className="w-3 h-3" />
+                      <span>{tecnico.nombre_completo}</span>
+                      {tecnico.profile?.codigo_worldoffice && (
+                        <span className="text-xs text-gray-500">({tecnico.profile.codigo_worldoffice})</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-500 italic">Todos los técnicos ocupados</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

@@ -28,6 +28,8 @@ class ClienteInfo(BaseModel):
     tipo_documento: Optional[TipoDocumento] = None
     numero_documento: Optional[str] = None
     medio_pago: Optional[MedioPago] = None
+    # Código interno de WorldOffice (para facturación)
+    codigo_worldoffice: Optional[str] = None
 
 class ItemServicio(BaseModel):
     """Item individual de servicio dentro de una orden"""

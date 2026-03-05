@@ -43,6 +43,7 @@ const Services = () => {
     cliente_tipo_documento: '',
     cliente_numero_documento: '',
     cliente_medio_pago: '',
+    cliente_codigo_worldoffice: '',
     recomendaciones: '',
     ubicacion_servicio: 'por_fuera',
     servicios: [{ tipo_servicio_id: '', observaciones: '' }],
@@ -104,6 +105,7 @@ const Services = () => {
       cliente_tipo_documento: '',
       cliente_numero_documento: '',
       cliente_medio_pago: '',
+      cliente_codigo_worldoffice: '',
       recomendaciones: '',
       ubicacion_servicio: 'por_fuera',
       servicios: [{ tipo_servicio_id: '', observaciones: '' }],
@@ -184,6 +186,7 @@ const Services = () => {
             tipo_documento: formData.cliente_tipo_documento,
             numero_documento: formData.cliente_numero_documento,
             medio_pago: formData.cliente_medio_pago || null,
+            codigo_worldoffice: formData.cliente_codigo_worldoffice || null,
           },
           tipo_servicio_id: primerServicio.tipo_servicio_id,
           observaciones: primerServicio.observaciones,
@@ -647,7 +650,7 @@ const ServiceModal = ({
                 <FileText className="w-5 h-5 mr-2" />
                 Datos de Facturación
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Tipo de Documento *
@@ -679,6 +682,22 @@ const ServiceModal = ({
                     placeholder="Ej: 1234567890"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Código WorldOffice
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cliente_codigo_worldoffice}
+                    onChange={(e) => setFormData({ ...formData, cliente_codigo_worldoffice: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ej: WO-12345"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Código interno del cliente en WorldOffice
+                  </p>
                 </div>
 
                 <div>

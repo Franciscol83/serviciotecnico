@@ -29,7 +29,8 @@ class ReporteBase(BaseModel):
 
 class ReporteCreate(ReporteBase):
     """Model para crear reporte"""
-    pass
+    firma_cliente_base64: Optional[str] = None
+    cliente_firma_nombre: Optional[str] = None
 
 class Reporte(ReporteBase):
     """Model completo de reporte"""

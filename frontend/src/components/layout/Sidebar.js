@@ -44,7 +44,7 @@ const Sidebar = () => {
         { name: 'Servicios', icon: FileText, path: '/services', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Inventario', icon: Package, path: '/inventory', roles: ['admin', 'supervisor'] },
-        { name: 'Reportes', icon: BarChart3, path: '/reports', roles: ['admin', 'supervisor', 'tecnico'] },
+        { name: 'Reportes Técnicos', icon: BarChart3, path: '/reportes', roles: ['admin', 'supervisor', 'tecnico'] },
         { name: 'Chat', icon: MessageSquare, path: '/chat', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
       ],
       supervisor: [
@@ -53,7 +53,7 @@ const Sidebar = () => {
         { name: 'Servicios', icon: FileText, path: '/services', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Inventario', icon: Package, path: '/inventory', roles: ['admin', 'supervisor'] },
-        { name: 'Reportes', icon: BarChart3, path: '/reports', roles: ['admin', 'supervisor', 'tecnico'] },
+        { name: 'Reportes Técnicos', icon: BarChart3, path: '/reportes', roles: ['admin', 'supervisor', 'tecnico'] },
         { name: 'Chat', icon: MessageSquare, path: '/chat', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
       ],
       asesor: [
@@ -65,7 +65,7 @@ const Sidebar = () => {
       tecnico: [
         { name: 'Mis Servicios', icon: FileText, path: '/services', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
-        { name: 'Reportes', icon: BarChart3, path: '/reports', roles: ['admin', 'supervisor', 'tecnico'] },
+        { name: 'Reportes Técnicos', icon: BarChart3, path: '/reportes', roles: ['admin', 'supervisor', 'tecnico'] },
         { name: 'Materiales', icon: Package, path: '/my-materials', roles: ['tecnico'] },
         { name: 'Chat', icon: MessageSquare, path: '/chat', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
       ],

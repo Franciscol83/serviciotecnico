@@ -101,3 +101,98 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Aplicación de gestión para servicio técnico de Tecno Nacho SAS con gestión de usuarios multi-rol, órdenes de servicio, calendario propio, reportes técnicos con fotos y firma digital, y Dashboard de KPIs integrable con Power BI"
+
+backend:
+  - task: "Gestión de múltiples roles por usuario"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/users.py, /app/backend/models/user.py, /app/backend/middleware/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Backend actualizado para soportar múltiples roles. Campo 'roles' es una lista y 'role' es el rol principal. Middleware de autorización verifica si el usuario tiene alguno de los roles requeridos."
+
+  - task: "CRUD de reportes técnicos"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/reportes.py, /app/backend/models/reporte.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoints creados: POST /api/reportes (crear), GET /api/reportes (listar), GET /api/reportes/{id} (obtener), PUT /api/reportes/{id} (actualizar), DELETE /api/reportes/{id} (eliminar). Soporta fotos en Base64, materiales consumidos, y firma digital del cliente."
+
+  - task: "Endpoint de estadísticas para Dashboard y Power BI"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/reportes.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoint GET /api/reportes/estadisticas devuelve KPIs completos: servicios por estado, por técnico, por tipo, materiales más consumidos, tasa de cumplimiento, y servicios por mes. Listo para Power BI."
+
+frontend:
+  - task: "Interfaz de múltiples roles en gestión de usuarios"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Users.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Modal de creación/edición de usuarios actualizado con checkboxes para seleccionar múltiples roles. Se muestra el rol principal cuando hay más de un rol seleccionado. La tabla de usuarios muestra todos los roles asignados como badges."
+
+  - task: "Página de reportes técnicos con formulario completo"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/Reportes.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Página completa creada con formulario de reportes técnicos. Incluye: selector de servicio, campos de observaciones, materiales consumidos con agregar/eliminar, subida de fotos múltiples con preview, canvas de firma digital con react-signature-canvas, validaciones completas antes de enviar."
+
+  - task: "Navegación actualizada para reportes"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js, /app/frontend/src/components/layout/Sidebar.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Ruta /reportes agregada en App.js protegida para roles admin, supervisor y técnico. Enlaces en Sidebar actualizados para apuntar a /reportes en lugar de /reports (placeholder)."
+
+metadata:
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Interfaz de múltiples roles en gestión de usuarios"
+    - "Página de reportes técnicos con formulario completo"
+    - "CRUD de reportes técnicos"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implementadas las dos tareas prioritarias: 1) Múltiples roles por usuario (backend + frontend) y 2) Formulario completo de reportes técnicos con fotos y firma digital. Backend funcionando correctamente con todos los endpoints. Frontend implementado con checkboxes de roles y formulario completo con SignatureCanvas. Requiere testing completo de ambas funcionalidades tanto en backend como en frontend."

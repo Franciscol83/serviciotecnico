@@ -10,6 +10,7 @@ import Users from "@/pages/Users";
 import Services from "@/pages/Services";
 import ServiceTypes from "@/pages/ServiceTypes";
 import Calendar from "@/pages/Calendar";
+import Reportes from "@/pages/Reportes";
 
 // Componente para redirigir al dashboard o login
 const Home = () => {
@@ -76,6 +77,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Calendar />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Reportes - Técnicos, Supervisores y Admin */}
+              <Route
+                path="/reportes"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                    <Reportes />
                   </ProtectedRoute>
                 }
               />

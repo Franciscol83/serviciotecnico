@@ -1,0 +1,73 @@
+{
+  "summary": "Testing complete for Multiple Roles per User and Reportes Técnicos features. Backend 16/16 tests passed. Frontend UI verified all components working. Fixed ReporteCreate model to accept firma_cliente_base64 and cliente_firma_nombre.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard, Users",
+        "issues": ["Console warning: '<span> cannot be a child of <option>/<tbody>' - React DevTools overlay issue, does not affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_users_roles_reportes.py",
+    "/app/test_reports/pytest/pytest_results_roles_reportes.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Multiple roles per user working correctly - checkboxes allow selecting multiple roles",
+    "Reportes Técnicos API fully functional - create, get, estadisticas endpoints all working",
+    "Signature validation working - backend requires firma_cliente_base64 and cliente_firma_nombre",
+    "Materials consumidos can be added dynamically in the frontend",
+    "Services filtered correctly for reportes (only aprobado/en_proceso services shown)"
+  ],
+  "updated_files": [
+    "/app/backend/models/reporte.py",
+    "/app/backend/tests/test_users_roles_reportes.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (UI elements verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@tecnonacho.com / admin123"
+  },
+  "seed_data_creation": "Test users and reportes created during pytest were cleaned up",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Multiple roles feature and Reportes Técnicos are fully implemented. Users can have multiple roles selected via checkboxes (Técnico, Asesor, Supervisor, Administrador). Reportes page allows creating technical reports with: service selection, work description, observations, time, materials, photos, and digital signature. The /api/reportes/estadisticas endpoint provides KPIs for Power BI integration. Services must be in 'aprobado' or 'en_proceso' state to appear in reportes service selector.",
+  "features_tested": {
+    "backend": [
+      "POST /api/auth/register - creates user with multiple roles array",
+      "PUT /api/users/{id} - updates user roles (add/remove)",
+      "GET /api/users - returns users with roles array",
+      "POST /api/reportes - creates reporte with materials, photos, signature",
+      "GET /api/reportes - lists all reportes with filtering by servicio_id",
+      "GET /api/reportes/estadisticas - returns KPIs for dashboards",
+      "Validation: reporte requires servicio_id, trabajo_realizado, firma, firma_nombre"
+    ],
+    "frontend": [
+      "Users page shows role badges for each user",
+      "Create User modal has role checkboxes for multiple selection",
+      "Edit User modal shows current roles and allows adding/removing",
+      "Reportes page loads with informational message",
+      "Create Report modal has all sections: service, work, observations, time, materials, photos, signature",
+      "Materials can be added with name, quantity, and unit",
+      "Photo upload section present with 5MB limit notice",
+      "Signature canvas with 'Guardar Firma' and 'Limpiar' buttons",
+      "Form validation shows appropriate error messages"
+    ]
+  },
+  "bug_fixes_applied": [
+    {
+      "file": "/app/backend/models/reporte.py",
+      "issue": "ReporteCreate model was missing firma_cliente_base64 and cliente_firma_nombre fields",
+      "fix": "Added firma_cliente_base64: Optional[str] and cliente_firma_nombre: Optional[str] to ReporteCreate class"
+    }
+  ]
+}

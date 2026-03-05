@@ -18,6 +18,7 @@ const Users = () => {
     nombre_completo: '',
     password: '',
     role: 'tecnico',
+    roles: ['tecnico'], // Array de roles
     activo: true,
   });
 
@@ -50,6 +51,7 @@ const Users = () => {
       nombre_completo: '',
       password: '',
       role: 'tecnico',
+      roles: ['tecnico'],
       activo: true,
     });
     setShowModal(true);
@@ -62,6 +64,7 @@ const Users = () => {
       email: user.email,
       nombre_completo: user.nombre_completo,
       role: user.role,
+      roles: user.roles || [user.role], // Si no tiene roles array, usar el rol principal
       activo: user.activo,
     });
     setShowModal(true);
@@ -122,6 +125,20 @@ const Users = () => {
         {labels[role]}
       </span>
     );
+  };
+
+  const handleRoleToggle = (role) => {
+    const newRoles = formData.roles.includes(role)
+      ? formData.roles.filter(r => r !== role)
+      : [...formData.roles, role];
+    
+    // Siempre debe haber al menos un rol seleccionado
+    if (newRoles.length === 0) return;
+    
+    // Actualizar el rol principal si el actual fue deseleccionado
+    const newRole = newRoles.includes(formData.role) ? formData.role : newRoles[0];
+    
+    setFormData({ ...formData, roles: newRoles, role: newRole });
   };
 
   return (
@@ -212,7 +229,11 @@ const Users = () => {
                         <div className="text-sm text-gray-900 dark:text-gray-300">{user.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getRoleBadge(user.role)}
+                        <div className="flex flex-wrap gap-1">
+                          {(user.roles && user.roles.length > 0 ? user.roles : [user.role]).map((role) => (
+                            <span key={role}>{getRoleBadge(role)}</span>
+                          ))}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -304,20 +325,57 @@ const Users = () => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Rol
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Roles (selecciona uno o más)
                   </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    disabled={currentUser?.role !== 'admin'}
-                  >
-                    <option value="tecnico">Técnico</option>
-                    <option value="asesor">Asesor de Ventas</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="admin">Administrador</option>
-                  </select>
+                  <div className="space-y-2">
+                    {[
+                      { value: 'tecnico', label: 'Técnico' },
+                      { value: 'asesor', label: 'Asesor de Ventas' },
+                      { value: 'supervisor', label: 'Supervisor' },
+                      { value: 'admin', label: 'Administrador' }
+                    ].map((roleOption) => (
+                      <label
+                        key={roleOption.value}
+                        className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.roles.includes(roleOption.value)}
+                          onChange={() => handleRoleToggle(roleOption.value)}
+                          disabled={currentUser?.role !== 'admin'}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-gray-300">
+                          {roleOption.label}
+                        </span>
+                        {formData.roles.includes(roleOption.value) && formData.role === roleOption.value && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            (Principal)
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  {formData.roles.length > 1 && (
+                    <div className="mt-3">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        Rol Principal
+                      </label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        disabled={currentUser?.role !== 'admin'}
+                      >
+                        {formData.roles.map((role) => (
+                          <option key={role} value={role}>
+                            {role === 'admin' ? 'Administrador' : role === 'supervisor' ? 'Supervisor' : role === 'asesor' ? 'Asesor' : 'Técnico'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center">

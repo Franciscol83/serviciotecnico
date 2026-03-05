@@ -50,9 +50,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 def require_roles(allowed_roles: List[str]):
     """
     Decorator para requerir roles específicos
+    Verifica si el usuario tiene AL MENOS UNO de los roles permitidos
     """
     async def role_checker(current_user: dict = Depends(get_current_user)):
-        if current_user["role"] not in allowed_roles:
+        user_roles = set([current_user["role"]])  # Rol principal
+        if "roles" in current_user and current_user["roles"]:
+            user_roles.update(current_user["roles"])  # Roles adicionales
+        
+        if not any(role in user_roles for role in allowed_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"No tienes permisos suficientes. Roles requeridos: {', '.join(allowed_roles)}"

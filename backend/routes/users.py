@@ -69,13 +69,18 @@ async def update_user(user_id: str, user_data: UserUpdate, current_user: dict = 
             detail="Usuario no encontrado"
         )
     
-    # Solo admin puede cambiar role y activo
+    # Solo admin puede cambiar roles
     if current_user["role"] != "admin":
-        if user_data.role is not None or user_data.activo is not None:
+        if user_data.role is not None or user_data.roles is not None or user_data.activo is not None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Solo los administradores pueden cambiar roles o desactivar usuarios"
             )
+    
+    # Si se cambian los roles, asegurarse de que el rol principal esté incluido
+    if user_data.roles is not None and user_data.role is not None:
+        if user_data.role not in user_data.roles:
+            user_data.roles.append(user_data.role)
     
     # Preparar datos de actualización
     update_data = user_data.model_dump(exclude_unset=True)

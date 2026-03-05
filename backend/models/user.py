@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime, timezone
 import uuid
 
@@ -19,7 +19,8 @@ class UserBase(BaseModel):
     """Base model para usuario"""
     email: EmailStr
     nombre_completo: str
-    role: UserRole
+    role: UserRole  # Rol principal para compatibilidad
+    roles: List[UserRole] = []  # Múltiples roles
     activo: bool = True
 
 class UserCreate(UserBase):
@@ -31,7 +32,8 @@ class UserUpdate(BaseModel):
     """Model para actualizar usuario"""
     email: Optional[EmailStr] = None
     nombre_completo: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[UserRole] = None  # Rol principal
+    roles: Optional[List[UserRole]] = None  # Múltiples roles
     activo: Optional[bool] = None
     profile: Optional[UserProfile] = None
 

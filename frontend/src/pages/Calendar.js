@@ -29,12 +29,15 @@ const Calendar = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Cargar servicios aprobados con fecha agendada
-      const servicesResponse = await servicesAPI.getAll({ estado: 'aprobado,en_proceso,completado' });
+      // Cargar todos los servicios
+      const servicesResponse = await servicesAPI.getAll();
       const allServices = servicesResponse.data;
       
-      // Filtrar solo servicios con fecha agendada
-      let serviciosConFecha = allServices.filter(s => s.fecha_agendada);
+      // Filtrar servicios aprobados, en proceso o completados CON fecha agendada
+      let serviciosConFecha = allServices.filter(s => 
+        s.fecha_agendada && 
+        (s.estado === 'aprobado' || s.estado === 'en_proceso' || s.estado === 'completado')
+      );
       
       // Filtrar por técnico si está seleccionado
       if (filterTecnico) {
@@ -64,7 +67,6 @@ const Calendar = () => {
   const getEvents = () => {
     return services.map(service => {
       // Colores por técnico
-      const tecnico = tecnicos.find(t => t.id === service.tecnico_asignado_id);
       const tecnicoIndex = tecnicos.findIndex(t => t.id === service.tecnico_asignado_id);
       const colors = [
         '#3b82f6', // blue
@@ -77,13 +79,21 @@ const Calendar = () => {
       ];
       const color = colors[tecnicoIndex % colors.length];
 
+      // Formatear hora
+      const fecha = new Date(service.fecha_agendada);
+      const hora = fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      // Título más descriptivo
+      const titulo = `${hora} - ${service.caso_numero}\n${service.cliente.nombre}\n${service.tipo_servicio_nombre}`;
+
       return {
         id: service.id,
-        title: `${service.caso_numero} - ${service.cliente.nombre}`,
+        title: titulo,
         start: service.fecha_agendada,
         end: service.fecha_agendada, // Podríamos calcular duración estimada
         backgroundColor: color,
         borderColor: color,
+        textColor: '#ffffff',
         extendedProps: {
           service: service,
         },

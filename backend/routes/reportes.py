@@ -196,3 +196,121 @@ async def delete_reporte(
         )
     
     return {"message": "Reporte eliminado exitosamente"}
+    
+
+
+@router.get("/estadisticas")
+async def get_estadisticas(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Obtener estadísticas generales para dashboards y Power BI
+    Devuelve KPIs y datos para visualización
+    """
+    db = get_db()
+    
+    # Obtener todos los servicios y reportes
+    servicios = await db.services.find({}, {"_id": 0}).to_list(10000)
+    reportes = await db.reportes.find({}, {"_id": 0}).to_list(10000)
+    usuarios = await db.users.find({"role": "tecnico", "activo": True}, {"_id": 0}).to_list(1000)
+    
+    # KPI 1: Servicios por estado
+    servicios_por_estado = {}
+    for s in servicios:
+        estado = s.get("estado", "desconocido")
+        servicios_por_estado[estado] = servicios_por_estado.get(estado, 0) + 1
+    
+    # KPI 2: Servicios por técnico
+    servicios_por_tecnico = {}
+    for s in servicios:
+        tecnico = s.get("tecnico_asignado_nombre", "Sin asignar")
+        servicios_por_tecnico[tecnico] = servicios_por_tecnico.get(tecnico, 0) + 1
+    
+    # KPI 3: Servicios por tipo
+    servicios_por_tipo = {}
+    for s in servicios:
+        tipo = s.get("tipo_servicio_nombre", "Desconocido")
+        servicios_por_tipo[tipo] = servicios_por_tipo.get(tipo, 0) + 1
+    
+    # KPI 4: Servicios por ubicación
+    servicios_por_ubicacion = {"en_local": 0, "por_fuera": 0}
+    for s in servicios:
+        ubicacion = s.get("ubicacion_servicio", "por_fuera")
+        servicios_por_ubicacion[ubicacion] += 1
+    
+    # KPI 5: Materiales más consumidos
+    materiales_consumidos = {}
+    for r in reportes:
+        for mat in r.get("materiales_consumidos", []):
+            nombre = mat.get("nombre", "Desconocido")
+            cantidad = mat.get("cantidad", 0)
+            if nombre in materiales_consumidos:
+                materiales_consumidos[nombre] += cantidad
+            else:
+                materiales_consumidos[nombre] = cantidad
+    
+    # KPI 6: Tiempo promedio por servicio
+    tiempos = [r.get("tiempo_dedicado_horas", 0) for r in reportes if r.get("tiempo_dedicado_horas")]
+    tiempo_promedio = sum(tiempos) / len(tiempos) if tiempos else 0
+    
+    # KPI 7: Tasa de cumplimiento por técnico
+    cumplimiento_tecnicos = []
+    for tecnico in usuarios:
+        tecnico_id = tecnico["id"]
+        tecnico_nombre = tecnico["nombre_completo"]
+        
+        # Servicios asignados
+        servicios_asignados = [s for s in servicios if s.get("tecnico_asignado_id") == tecnico_id]
+        total_asignados = len(servicios_asignados)
+        
+        # Servicios completados
+        completados = len([s for s in servicios_asignados if s.get("estado") == "completado"])
+        
+        # Tasa de cumplimiento
+        tasa = (completados / total_asignados * 100) if total_asignados > 0 else 0
+        
+        cumplimiento_tecnicos.append({
+            "tecnico": tecnico_nombre,
+            "total_asignados": total_asignados,
+            "completados": completados,
+            "tasa_cumplimiento": round(tasa, 2)
+        })
+    
+    # KPI 8: Servicios por mes (últimos 6 meses)
+    from datetime import datetime, timedelta
+    import calendar
+    
+    servicios_por_mes = []
+    hoy = datetime.now()
+    for i in range(6):
+        mes_fecha = hoy - timedelta(days=30 * i)
+        mes_nombre = calendar.month_name[mes_fecha.month]
+        
+        count = len([
+            s for s in servicios 
+            if isinstance(s.get("fecha_creacion"), str) and 
+            mes_fecha.strftime("%Y-%m") in s["fecha_creacion"]
+        ])
+        
+        servicios_por_mes.append({
+            "mes": mes_nombre,
+            "cantidad": count
+        })
+    
+    servicios_por_mes.reverse()
+    
+    return {
+        "resumen": {
+            "total_servicios": len(servicios),
+            "total_reportes": len(reportes),
+            "total_tecnicos": len(usuarios),
+            "tiempo_promedio_horas": round(tiempo_promedio, 2)
+        },
+        "servicios_por_estado": servicios_por_estado,
+        "servicios_por_tecnico": servicios_por_tecnico,
+        "servicios_por_tipo": servicios_por_tipo,
+        "servicios_por_ubicacion": servicios_por_ubicacion,
+        "materiales_mas_consumidos": dict(sorted(materiales_consumidos.items(), key=lambda x: x[1], reverse=True)[:10]),
+        "cumplimiento_tecnicos": cumplimiento_tecnicos,
+        "servicios_por_mes": servicios_por_mes
+    }

@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Importar rutas
-from routes import auth, users, services, service_types
+from routes import auth, users, services, service_types, reportes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,6 +37,7 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(service_types.router)
 api_router.include_router(services.router)
+api_router.include_router(reportes.router)
 
 # Include the router in the main app
 app.include_router(api_router)

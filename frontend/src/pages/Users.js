@@ -184,6 +184,56 @@ const Users = () => {
           </div>
         )}
 
+        {/* Buscador y Filtros */}
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-48">
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Todos los roles</option>
+                <option value="admin">Administrador</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="asesor">Asesor</option>
+                <option value="tecnico">Técnico</option>
+              </select>
+            </div>
+            {(searchTerm || filterRole) && (
+              <button
+                onClick={() => { setSearchTerm(''); setFilterRole(''); }}
+                className="flex items-center justify-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Limpiar
+              </button>
+            )}
+          </div>
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            <Filter className="w-4 h-4 inline mr-1" />
+            Mostrando {users.filter(u => {
+              const matchesSearch = !searchTerm || 
+                u.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesRole = !filterRole || u.roles?.includes(filterRole) || u.role === filterRole;
+              return matchesSearch && matchesRole;
+            }).length} usuario(s)
+          </div>
+        </div>
+
         {/* Users Table */}
         {loading ? (
           <div className="flex justify-center items-center py-12">

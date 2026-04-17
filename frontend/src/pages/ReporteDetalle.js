@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
@@ -274,7 +274,7 @@ const ReporteDetalle = () => {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {reporte.materiales_consumidos.map((material, index) => (
-                      <tr key={index}>
+                      <tr key={`material-${material.nombre}-${material.cantidad}-${index}`}>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{material.nombre}</td>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{material.cantidad}</td>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{material.unidad}</td>
@@ -295,7 +295,7 @@ const ReporteDetalle = () => {
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {reporte.fotos.map((foto, index) => (
-                  <div key={index} className="space-y-2">
+                  <div key={`foto-${foto.timestamp || index}`} className="space-y-2">
                     <img
                       src={foto.url}
                       alt={foto.descripcion || `Foto ${index + 1}`}

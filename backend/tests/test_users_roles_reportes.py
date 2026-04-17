@@ -12,8 +12,9 @@ import os
 import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
-ADMIN_EMAIL = "admin@tecnonacho.com"
-ADMIN_PASSWORD = "admin123"
+# Load test credentials from environment for security
+ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@tecnonacho.com')
+ADMIN_PASSWORD = os.environ.get('TEST_ADMIN_PASSWORD', 'admin123')
 
 
 class TestAuthSetup:
@@ -29,7 +30,7 @@ class TestAuthSetup:
         data = response.json()
         assert "access_token" in data
         assert "user" in data
-        print(f"✓ Admin login successful")
+        print("✓ Admin login successful")
 
 
 class TestUsersMultipleRoles:
@@ -309,7 +310,7 @@ class TestReportesEndpoints:
         
         # Should fail with validation error
         assert response.status_code in [400, 422], f"Expected validation error, got {response.status_code}"
-        print(f"✓ Correctly rejected reporte without servicio_id")
+        print("✓ Correctly rejected reporte without servicio_id")
     
     def test_create_reporte_invalid_servicio(self, auth_token):
         """Test POST /api/reportes fails with invalid servicio_id"""
@@ -328,7 +329,7 @@ class TestReportesEndpoints:
         )
         
         assert response.status_code == 404, f"Expected 404 for invalid servicio, got {response.status_code}"
-        print(f"✓ Correctly rejected reporte with invalid servicio_id")
+        print("✓ Correctly rejected reporte with invalid servicio_id")
     
     def test_create_reporte_success(self, auth_token, setup_service_for_report):
         """Test POST /api/reportes creates a reporte successfully"""
@@ -409,7 +410,7 @@ class TestReportesEndpoints:
         
         # Should fail because a reporte already exists for this service
         assert response.status_code == 400, f"Expected 400 for duplicate, got {response.status_code}"
-        print(f"✓ Correctly rejected duplicate reporte for same service")
+        print("✓ Correctly rejected duplicate reporte for same service")
     
     def test_get_reportes_after_creation(self, auth_token):
         """Test GET /api/reportes returns created reportes"""

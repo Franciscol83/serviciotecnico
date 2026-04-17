@@ -431,7 +431,7 @@ const Reportes = () => {
                       <div className="space-y-2 mt-4">
                         {formData.materiales_consumidos.map((material, index) => (
                           <div
-                            key={index}
+                            key={`material-${material.nombre}-${index}`}
                             className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-3 rounded-lg"
                           >
                             <div>
@@ -482,7 +482,7 @@ const Reportes = () => {
                     {formData.fotos.length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         {formData.fotos.map((foto, index) => (
-                          <div key={index} className="relative group">
+                          <div key={`foto-${foto.timestamp}-${index}`} className="relative group">
                             <img
                               src={foto.url}
                               alt={`Foto ${index + 1}`}

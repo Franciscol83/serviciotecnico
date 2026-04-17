@@ -12,8 +12,9 @@ import requests
 import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
-ADMIN_EMAIL = "admin@tecnonacho.com"
-ADMIN_PASSWORD = "admin123"
+# Load test credentials from environment for security
+ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@tecnonacho.com')
+ADMIN_PASSWORD = os.environ.get('TEST_ADMIN_PASSWORD', 'admin123')
 
 
 class TestServiceTypesCatalog:

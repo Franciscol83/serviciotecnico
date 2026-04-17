@@ -86,12 +86,15 @@ async def login(credentials: UserLogin, response: Response):
     # Crear token JWT
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"], "role": user["role"]})
     
+    # Determinar si estamos en producción (secure=True requiere HTTPS)
+    is_production = os.environ.get('ENVIRONMENT', 'development') == 'production'
+    
     # Setear cookie httpOnly (SEGURIDAD: protege contra XSS)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,  # No accesible desde JavaScript
-        secure=True,  # Solo HTTPS
+        secure=is_production,  # Solo HTTPS en producción, permite HTTP en desarrollo
         samesite="lax",  # Protección CSRF
         max_age=86400  # 24 horas
     )

@@ -87,4 +87,15 @@ export const reportesAPI = {
   getEstadisticas: () => apiClient.get('/reportes/estadisticas'),
 };
 
+export const inventarioAPI = {
+  getAll: (params) => apiClient.get('/inventario', { params }),
+  getById: (id) => apiClient.get(`/inventario/${id}`),
+  create: (data) => apiClient.post('/inventario', data),
+  update: (id, data) => apiClient.put(`/inventario/${id}`, data),
+  delete: (id) => apiClient.delete(`/inventario/${id}`),
+  ajustarStock: (id, cantidad, motivo) => apiClient.post(`/inventario/${id}/ajustar-stock?cantidad=${cantidad}&motivo=${encodeURIComponent(motivo)}`),
+  getMovimientos: (id) => apiClient.get(`/inventario/${id}/movimientos`),
+  getAlertasStockBajo: () => apiClient.get('/inventario/alertas/stock-bajo'),
+};
+
 export default apiClient;

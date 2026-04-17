@@ -12,6 +12,9 @@ const ServiceTypes = () => {
   const [modalType, setModalType] = useState('create');
   const [selectedType, setSelectedType] = useState(null);
   const [message, setMessage] = useState(null);
+  
+  // Estado de búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -181,7 +184,7 @@ const ServiceTypes = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {serviceTypes.map((type) => (
+            {filteredTypes.map((type) => (
               <div
                 key={type.id}
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-100 dark:border-gray-700"

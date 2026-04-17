@@ -12,6 +12,10 @@ const Users = () => {
   const [modalType, setModalType] = useState('create'); // 'create' or 'edit'
   const [selectedUser, setSelectedUser] = useState(null);
   const [message, setMessage] = useState(null);
+  
+  // Estados de búsqueda y filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('');
 
   const [formData, setFormData] = useState({
     email: '',

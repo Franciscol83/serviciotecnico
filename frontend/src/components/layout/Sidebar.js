@@ -45,6 +45,7 @@ const Sidebar = () => {
         { name: 'Calendario', icon: Calendar, path: '/calendar', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
         { name: 'Inventario', icon: Package, path: '/inventory', roles: ['admin', 'supervisor'] },
         { name: 'Reportes Técnicos', icon: BarChart3, path: '/reportes', roles: ['admin', 'supervisor', 'tecnico'] },
+        { name: 'Configuración', icon: Settings, path: '/configuracion', roles: ['admin'] },
         { name: 'Chat', icon: MessageSquare, path: '/chat', roles: ['admin', 'supervisor', 'asesor', 'tecnico'] },
       ],
       supervisor: [

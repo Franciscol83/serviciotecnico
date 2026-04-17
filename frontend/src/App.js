@@ -10,7 +10,10 @@ import Users from "@/pages/Users";
 import Services from "@/pages/Services";
 import ServiceTypes from "@/pages/ServiceTypes";
 import Calendar from "@/pages/Calendar";
-import Reportes from "@/pages/Reportes";
+import ReportesLista from "@/pages/ReportesLista";
+import CrearReporte from "@/pages/CrearReporte";
+import ReporteDetalle from "@/pages/ReporteDetalle";
+import Configuracion from "@/pages/Configuracion";
 
 // Componente para redirigir al dashboard o login
 const Home = () => {
@@ -86,7 +89,37 @@ function App() {
                 path="/reportes"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
-                    <Reportes />
+                    <ReportesLista />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Crear Reporte */}
+              <Route
+                path="/reportes/crear"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                    <CrearReporte />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Detalle de Reporte */}
+              <Route
+                path="/reportes/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                    <ReporteDetalle />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Configuración - Solo Admin */}
+              <Route
+                path="/configuracion"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <Configuracion />
                   </ProtectedRoute>
                 }
               />

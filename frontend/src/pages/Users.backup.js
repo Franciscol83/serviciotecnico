@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import { usersAPI, authAPI } from '@/api/client';
-import { Plus, Edit, Trash2, Mail, Phone, User, Shield, AlertCircle, CheckCircle, Search, Filter, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Mail, Phone, User, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Users = () => {
   const { user: currentUser } = useAuth();
@@ -263,7 +263,7 @@ const Users = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredUsers.map((user) => (
+                  {users.map((user) => (
                     <tr key={user.id} data-testid={`user-row-${user.id}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">

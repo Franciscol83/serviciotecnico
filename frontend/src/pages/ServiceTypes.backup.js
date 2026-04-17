@@ -97,14 +97,6 @@ const ServiceTypes = () => {
     }
   };
 
-  // Filtrar tipos de servicio
-  const filteredTypes = serviceTypes.filter(type => 
-    !searchTerm || 
-    type.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    type.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    type.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

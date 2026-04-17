@@ -14,17 +14,14 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
-    // Verificar si hay un token y cargar el usuario
+    // Verificar si hay usuario guardado en localStorage (solo para UI)
     const loadUser = async () => {
-      const savedToken = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
 
-      if (savedToken && savedUser) {
+      if (savedUser) {
         try {
-          setToken(savedToken);
           setUser(JSON.parse(savedUser));
         } catch (error) {
           console.error('Error al cargar usuario:', error);
@@ -40,12 +37,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token, user: userData } = response.data;
+      const { user: userData } = response.data;
 
-      localStorage.setItem('token', access_token);
+      // Solo guardar info del usuario en localStorage (para UI)
+      // El token está en cookie httpOnly (seguro contra XSS)
       localStorage.setItem('user', JSON.stringify(userData));
-
-      setToken(access_token);
       setUser(userData);
 
       return { success: true };
@@ -58,11 +54,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Llamar al endpoint de logout para limpiar la cookie httpOnly
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Error en logout:', error);
+    } finally {
+      // Limpiar localStorage
+      localStorage.removeItem('user');
+      setUser(null);
+    }
   };
 
   const updateUser = (updatedUser) => {
@@ -72,12 +74,12 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    token,
+    token: null, // Ya no exponemos el token (está en cookie httpOnly)
     loading,
     login,
     logout,
     updateUser,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated: !!user,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

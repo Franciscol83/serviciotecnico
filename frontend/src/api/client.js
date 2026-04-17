@@ -9,11 +9,13 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // CRÍTICO: Envía cookies httpOnly en cada request
 });
 
-// Interceptor para agregar token a las peticiones
+// Interceptor para agregar token a las peticiones (compatibilidad con localStorage durante transición)
 apiClient.interceptors.request.use(
   (config) => {
+    // Solo agregar header Authorization si existe token en localStorage (transición)
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

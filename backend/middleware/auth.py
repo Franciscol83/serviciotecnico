@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 from typing import Optional, List
@@ -6,11 +6,15 @@ import os
 
 from utils.jwt_handler import verify_token
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)  # auto_error=False para permitir cookies
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+):
     """
     Obtener el usuario actual desde el token JWT
+    Acepta token desde cookie httpOnly O desde header Authorization (compatibilidad)
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -18,8 +22,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    try:
+    token = None
+    
+    # 1. Intentar obtener token desde cookie httpOnly (prioridad)
+    token = request.cookies.get("access_token")
+    
+    # 2. Si no hay cookie, intentar desde header Authorization
+    if not token and credentials:
         token = credentials.credentials
+    
+    if not token:
+        raise credentials_exception
+    
+    try:
         payload = verify_token(token)
         user_id: str = payload.get("sub")
         if user_id is None:

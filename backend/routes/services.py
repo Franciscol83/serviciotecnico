@@ -9,6 +9,12 @@ from models.service import (
     AgregarItemServicio, ItemServicio
 )
 from middleware.auth import get_current_user, require_roles
+from utils.service_helpers import (
+    generate_case_number,
+    get_next_sequence_number,
+    validate_service_data,
+    create_modification_record
+)
 
 router = APIRouter(prefix="/services", tags=["Servicios"])
 
@@ -20,27 +26,11 @@ def get_db():
     return client[os.environ['DB_NAME']]
 
 async def get_next_caso_numero() -> str:
-    """Generar el siguiente número de caso secuencial"""
+    """Generar el siguiente número de caso secuencial usando helper"""
     db = get_db()
-    
-    # Obtener el año actual
     year = datetime.now(timezone.utc).year
-    prefix = f"TN-{year}-"
-    
-    # Buscar el último número del año
-    last_service = await db.services.find_one(
-        {"caso_numero": {"$regex": f"^{prefix}"}},
-        sort=[("caso_numero", -1)]
-    )
-    
-    if last_service:
-        # Extraer el número y sumar 1
-        last_num = int(last_service["caso_numero"].split("-")[-1])
-        next_num = last_num + 1
-    else:
-        next_num = 1
-    
-    return f"{prefix}{next_num:05d}"  # TN-2025-00001
+    sequence = await get_next_sequence_number(db, year)
+    return generate_case_number(year, sequence)
 
 @router.post("", response_model=Servicio, status_code=status.HTTP_201_CREATED)
 async def create_service(
@@ -141,12 +131,10 @@ async def create_service(
         service_obj.aprobado_por_nombre = current_user["nombre_completo"]
         service_obj.fecha_aprobacion = datetime.now(timezone.utc)
     
-    # Agregar modificación de creación
-    modificacion = ModificacionServicio(
+    # Agregar modificación de creación usando helper
+    modificacion_dict = create_modification_record(
         tipo="creacion",
-        usuario_id=current_user["id"],
         usuario_nombre=current_user["nombre_completo"],
-        usuario_role=current_user["role"],
         detalles={
             "estado": estado_inicial,
             "tecnico": tecnico["nombre_completo"],
@@ -154,6 +142,14 @@ async def create_service(
             "ubicacion": service_data.ubicacion_servicio,
             "total_servicios": len(tipos_servicios_nombres)
         }
+    )
+    modificacion = ModificacionServicio(
+        tipo=modificacion_dict["tipo"],
+        usuario_id=current_user["id"],
+        usuario_nombre=modificacion_dict["usuario_nombre"],
+        usuario_role=current_user["role"],
+        timestamp=datetime.fromisoformat(modificacion_dict["timestamp"]),
+        detalles=modificacion_dict["detalles"]
     )
     service_obj.modificaciones.append(modificacion)
     

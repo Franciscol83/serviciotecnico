@@ -17,6 +17,15 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
 
+  // Filtrar usuarios basado en búsqueda y rol
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = !searchTerm || 
+      u.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = !filterRole || u.roles?.includes(filterRole) || u.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
+
   const [formData, setFormData] = useState({
     email: '',
     nombre_completo: '',
@@ -228,13 +237,7 @@ const Users = () => {
           </div>
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             <Filter className="w-4 h-4 inline mr-1" />
-            Mostrando {users.filter(u => {
-              const matchesSearch = !searchTerm || 
-                u.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.email?.toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesRole = !filterRole || u.roles?.includes(filterRole) || u.role === filterRole;
-              return matchesSearch && matchesRole;
-            }).length} usuario(s)
+            Mostrando {filteredUsers.length} usuario(s)
           </div>
         </div>
 

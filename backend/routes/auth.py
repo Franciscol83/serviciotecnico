@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Request
 import os
 from datetime import datetime
 
@@ -54,9 +54,10 @@ async def register(user_data: UserCreate, current_user: dict = Depends(get_curre
     return User(**user_dict, id=user_obj.id, fecha_creacion=user_obj.fecha_creacion, fecha_actualizacion=user_obj.fecha_actualizacion)
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin):
+async def login(credentials: UserLogin, response: Response):
     """
     Iniciar sesión y obtener token JWT
+    El token se envía en una cookie httpOnly para mayor seguridad
     """
     db = get_db()
     
@@ -85,17 +86,27 @@ async def login(credentials: UserLogin):
     # Crear token JWT
     access_token = create_access_token(data={"sub": user["id"], "email": user["email"], "role": user["role"]})
     
+    # Setear cookie httpOnly (SEGURIDAD: protege contra XSS)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,  # No accesible desde JavaScript
+        secure=True,  # Solo HTTPS
+        samesite="lax",  # Protección CSRF
+        max_age=86400  # 24 horas
+    )
+    
     # Convertir timestamps a datetime
     if isinstance(user.get('fecha_creacion'), str):
         user['fecha_creacion'] = datetime.fromisoformat(user['fecha_creacion'])
     if isinstance(user.get('fecha_actualizacion'), str):
         user['fecha_actualizacion'] = datetime.fromisoformat(user['fecha_actualizacion'])
     
-    # Retornar token y usuario (sin password)
+    # Retornar usuario (el token está en la cookie)
     user_data = {k: v for k, v in user.items() if k not in ['_id', 'password_hash']}
     
     return Token(
-        access_token=access_token,
+        access_token=access_token,  # Enviado también en response por compatibilidad transitoria
         user=User(**user_data)
     )
 
@@ -107,8 +118,9 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return User(**current_user)
 
 @router.post("/logout")
-async def logout(current_user: dict = Depends(get_current_user)):
+async def logout(response: Response, current_user: dict = Depends(get_current_user)):
     """
-    Cerrar sesión (en el frontend se debe eliminar el token)
+    Cerrar sesión eliminando la cookie httpOnly
     """
+    response.delete_cookie(key="access_token")
     return {"message": "Sesión cerrada exitosamente"}

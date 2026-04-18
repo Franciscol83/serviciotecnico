@@ -73,6 +73,10 @@ api_router.include_router(services.router)
 api_router.include_router(reportes.router)
 api_router.include_router(inventario.router)
 
+# WorldOffice integration
+from routes import worldoffice
+api_router.include_router(worldoffice.router)
+
 # Include the router in the main app
 app.include_router(api_router)
 

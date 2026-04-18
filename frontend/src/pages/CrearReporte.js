@@ -464,6 +464,7 @@ const Reportes = () => {
                     <input
                       type="file"
                       accept="image/*"
+                      capture="environment"
                       multiple
                       onChange={handleImageUpload}
                       className="hidden"
@@ -475,7 +476,7 @@ const Reportes = () => {
                     >
                       <Camera className="w-5 h-5 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Subir fotos (máx 5MB por foto)
+                        📸 Toca para usar cámara o subir fotos (máx 5MB)
                       </span>
                     </label>
 
@@ -529,15 +530,19 @@ const Reportes = () => {
                       />
                     </div>
 
-                    <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900">
+                    <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 touch-none">
                       <SignatureCanvas
                         ref={signatureRef}
                         canvasProps={{
-                          className: 'w-full h-48',
+                          className: 'w-full h-48 sm:h-64',
                         }}
                         backgroundColor="transparent"
                       />
                     </div>
+                    
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      ✍️ Dibuja con tu dedo o stylus en el área blanca
+                    </p>
                     
                     <div className="flex space-x-3 mt-3">
                       <button

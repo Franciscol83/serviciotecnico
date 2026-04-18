@@ -15,6 +15,7 @@ import CrearReporte from "@/pages/CrearReporte";
 import ReporteDetalle from "@/pages/ReporteDetalle";
 import Configuracion from "@/pages/Configuracion";
 import Inventario from "@/pages/Inventario";
+import Chat from "@/pages/Chat";
 
 // Constantes de roles para evitar inline arrays (mejor performance)
 const ADMIN_SUPERVISOR_ROLES = ["admin", "supervisor"];

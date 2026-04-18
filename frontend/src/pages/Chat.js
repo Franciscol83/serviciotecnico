@@ -63,7 +63,8 @@ const Chat = () => {
         socketService.disconnect();
       };
     }
-  }, [currentUser?.id, selectedUser?.id, handleNewMessage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, selectedUser?.id]);
 
   // Cargar usuarios disponibles para chat
   useEffect(() => {

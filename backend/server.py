@@ -2,12 +2,14 @@ from fastapi import FastAPI, APIRouter, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import socketio
 import os
 import logging
 from pathlib import Path
+from datetime import datetime, timezone
 
 # Importar rutas
-from routes import auth, users, services, service_types, reportes, inventario
+from routes import auth, users, services, service_types, reportes, inventario, worldoffice, chat
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -17,8 +19,16 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
+# Create the main app
 app = FastAPI(title="Tecno Nacho SAS - API", version="2.0.0")
+
+# Socket.IO Server
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    logger=False,
+    engineio_logger=False
+)
 
 # Security Headers Middleware
 @app.middleware("http")
@@ -72,10 +82,8 @@ api_router.include_router(service_types.router)
 api_router.include_router(services.router)
 api_router.include_router(reportes.router)
 api_router.include_router(inventario.router)
-
-# WorldOffice integration
-from routes import worldoffice
 api_router.include_router(worldoffice.router)
+api_router.include_router(chat.router)
 
 # Include the router in the main app
 app.include_router(api_router)

@@ -75,7 +75,7 @@ const Chat = () => {
     if (selectedUser) {
       loadMensajes(selectedUser.id);
     }
-  }, [selectedUser]);
+  }, [selectedUser, loadMensajes]);
 
   const loadUsuarios = async () => {
     try {
@@ -89,7 +89,7 @@ const Chat = () => {
     }
   };
 
-  const loadMensajes = async (usuarioId) => {
+  const loadMensajes = useCallback(async (usuarioId) => {
     try {
       const response = await chatAPI.getMensajes(usuarioId, 50);
       setMessages(response.data.mensajes || []);
@@ -106,7 +106,7 @@ const Chat = () => {
     } catch (error) {
       // Error silencioso
     }
-  };
+  }, [currentUser.id]);
 
   const handleNewMessage = useCallback((mensaje) => {
     // Si el mensaje es del usuario seleccionado, agregarlo

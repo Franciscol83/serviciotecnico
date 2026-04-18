@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import { reportesAPI, servicesAPI } from '@/api/client';
@@ -37,11 +37,7 @@ const Reportes = () => {
     observaciones: '',
   });
 
-  useEffect(() => {
-    loadServicios();
-  }, []);
-
-  const loadServicios = async () => {
+  const loadServicios = useCallback(async () => {
     try {
       setLoading(true);
       // Cargar todos los servicios - el backend filtrará según el rol del usuario
@@ -52,12 +48,15 @@ const Reportes = () => {
       );
       setServicios(serviciosDisponibles);
     } catch (error) {
-      console.error('Error al cargar servicios:', error);
       showMessage('Error al cargar servicios disponibles', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadServicios();
+  }, [loadServicios]);
 
   // Filtrar servicios según búsqueda y estado
   const serviciosFiltrados = servicios.filter(servicio => {

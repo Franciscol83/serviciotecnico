@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { authAPI } from '@/api/client';
 
 const AuthContext = createContext(null);
@@ -15,16 +15,29 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(async () => {
+    try {
+      // Llamar al endpoint de logout para limpiar la cookie httpOnly
+      await authAPI.logout();
+    } catch (error) {
+      // Error silencioso en logout
+    } finally {
+      // Limpiar localStorage
+      localStorage.removeItem('user');
+      setUser(null);
+    }
+  }, []);
+
   useEffect(() => {
     // Verificar si hay usuario guardado en localStorage (solo para UI)
-    const loadUser = async () => {
+    const loadUser = () => {
       const savedUser = localStorage.getItem('user');
 
       if (savedUser) {
         try {
           setUser(JSON.parse(savedUser));
         } catch (error) {
-          console.error('Error al cargar usuario:', error);
+          // Error parseando usuario guardado - limpiar
           logout();
         }
       }
@@ -32,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadUser();
-  }, []);
+  }, [logout]);
 
   const login = async (email, password) => {
     try {
@@ -46,24 +59,10 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      console.error('Error en login:', error);
       return {
         success: false,
         error: error.response?.data?.detail || 'Error al iniciar sesión',
       };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      // Llamar al endpoint de logout para limpiar la cookie httpOnly
-      await authAPI.logout();
-    } catch (error) {
-      console.error('Error en logout:', error);
-    } finally {
-      // Limpiar localStorage
-      localStorage.removeItem('user');
-      setUser(null);
     }
   };
 

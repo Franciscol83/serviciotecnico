@@ -65,13 +65,7 @@ const Services = () => {
     fecha_agendada: '',
   });
 
-  useEffect(() => {
-    loadServices();
-    loadTecnicos();
-    loadServiceTypes();
-  }, [filterEstado]);
-
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -79,30 +73,43 @@ const Services = () => {
       const response = await servicesAPI.getAll(params);
       setServices(response.data);
     } catch (error) {
-      console.error('Error al cargar servicios:', error);
+      // Error silencioso - usar servicio de logging en producción
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error al cargar servicios:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterEstado]);
 
-  const loadTecnicos = async () => {
+  const loadTecnicos = useCallback(async () => {
     try {
       const response = await usersAPI.getAll();
       const tecnicosOnly = response.data.filter((u) => u.role === 'tecnico' && u.activo);
       setTecnicos(tecnicosOnly);
     } catch (error) {
-      console.error('Error al cargar técnicos:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error al cargar técnicos:', error);
+      }
     }
-  };
+  }, []);
 
-  const loadServiceTypes = async () => {
+  const loadServiceTypes = useCallback(async () => {
     try {
       const response = await serviceTypesAPI.getAll({ activo: true });
       setServiceTypes(response.data);
     } catch (error) {
-      console.error('Error al cargar tipos de servicios:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error al cargar tipos de servicios:', error);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadServices();
+    loadTecnicos();
+    loadServiceTypes();
+  }, [loadServices, loadTecnicos, loadServiceTypes]);
 
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type });
@@ -823,7 +830,7 @@ const ServiceModal = ({
 
               <div className="space-y-4">
                 {formData.servicios.map((servicio, index) => (
-                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={`servicio-${index}-${servicio.tipo_servicio_id || 'new'}`} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Servicio {index + 1}

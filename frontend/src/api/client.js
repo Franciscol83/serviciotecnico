@@ -12,14 +12,10 @@ const apiClient = axios.create({
   withCredentials: true, // CRÍTICO: Envía cookies httpOnly en cada request
 });
 
-// Interceptor para agregar token a las peticiones (compatibilidad con localStorage durante transición)
+// Interceptor - Ya no necesitamos agregar token manualmente
+// El token se envía automáticamente en cookie httpOnly
 apiClient.interceptors.request.use(
   (config) => {
-    // Solo agregar header Authorization si existe token en localStorage (transición)
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     return config;
   },
   (error) => {
@@ -32,8 +28,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token inválido o expirado
-      localStorage.removeItem('token');
+      // Token inválido o expirado - limpiar datos locales
       localStorage.removeItem('user');
       window.location.href = '/login';
     }

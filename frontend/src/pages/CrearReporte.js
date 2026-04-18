@@ -304,11 +304,14 @@ const Reportes = () => {
                       required
                     >
                       <option value="">Seleccionar servicio...</option>
-                      {servicios.map((servicio) => (
-                        <option key={servicio.id} value={servicio.id}>
-                          {servicio.numero_caso} - {servicio.cliente_nombre} - {servicio.tipo_servicio_nombre}
-                        </option>
-                      ))}
+                      {servicios.map((servicio) => {
+                        const nombreCliente = `${servicio.cliente.primer_nombre} ${servicio.cliente.segundo_nombre || ''} ${servicio.cliente.primer_apellido} ${servicio.cliente.segundo_apellido || ''}`.trim();
+                        return (
+                          <option key={servicio.id} value={servicio.id}>
+                            {servicio.caso_numero} - {nombreCliente} - {servicio.tipo_servicio_nombre}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 

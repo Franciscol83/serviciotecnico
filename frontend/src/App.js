@@ -14,6 +14,7 @@ import ReportesLista from "@/pages/ReportesLista";
 import CrearReporte from "@/pages/CrearReporte";
 import ReporteDetalle from "@/pages/ReporteDetalle";
 import Configuracion from "@/pages/Configuracion";
+import Inventario from "@/pages/Inventario";
 
 // Constantes de roles para evitar inline arrays (mejor performance)
 const ADMIN_SUPERVISOR_ROLES = ["admin", "supervisor"];
@@ -132,13 +133,8 @@ function App() {
               <Route
                 path="/inventory"
                 element={
-                  <ProtectedRoute>
-                    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                      <div className="text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventario</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">Próximamente en Fase 5</p>
-                      </div>
-                    </div>
+                  <ProtectedRoute allowedRoles={ADMIN_SUPERVISOR_ROLES}>
+                    <Inventario />
                   </ProtectedRoute>
                 }
               />

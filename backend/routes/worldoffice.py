@@ -4,6 +4,7 @@ Endpoints para consultar datos contables y clientes
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
+import os
 from middleware.auth import get_current_user, require_roles
 from utils.worldoffice_service import get_worldoffice_service
 
@@ -160,4 +161,67 @@ async def get_facturas_pendientes(
         raise HTTPException(
             status_code=500,
             detail=f"Error obteniendo facturas: {str(e)}"
+        )
+
+
+@router.post("/sync/manual")
+async def trigger_manual_sync(
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """
+    Ejecutar sincronización manual (solo Admin)
+    Útil para sincronizar fuera del horario programado
+    """
+    import subprocess
+    
+    try:
+        # Ejecutar script de sincronización en background
+        result = subprocess.Popen(
+            ['/app/backend/scripts/run_sync.sh'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        return {
+            "message": "Sincronización iniciada en segundo plano",
+            "pid": result.pid,
+            "info": "Revisa /app/logs/sync_worldoffice.log para ver el progreso"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error iniciando sincronización: {str(e)}"
+        )
+
+
+@router.get("/sync/logs")
+async def get_sync_logs(
+    limit: int = Query(10, ge=1, le=100),
+    current_user: dict = Depends(require_roles(["admin", "supervisor"]))
+):
+    """
+    Obtener logs de sincronizaciones recientes
+    """
+    from motor.motor_asyncio import AsyncIOMotorClient
+    
+    try:
+        mongo_url = os.environ['MONGO_URL']
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[os.environ['DB_NAME']]
+        
+        logs = await db.logs_sincronizacion.find(
+            {},
+            {"_id": 0}
+        ).sort("fecha", -1).limit(limit).to_list(limit)
+        
+        client.close()
+        
+        return {
+            "total": len(logs),
+            "logs": logs
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo logs: {str(e)}"
         )

@@ -1,0 +1,13 @@
+# Cron Jobs para Tecno Nacho SAS
+# Sincronización WorldOffice cada 12 horas
+
+# Ejecutar a las 2:00 AM y 2:00 PM todos los días
+0 2,14 * * * /app/backend/scripts/run_sync.sh >> /app/logs/cron_sync.log 2>&1
+
+# Formato cron: minuto hora día mes día_semana comando
+# 
+# Ejemplos de otros intervalos:
+# Cada 6 horas:    0 */6 * * *
+# Cada 24 horas:   0 2 * * *
+# Cada hora:       0 * * * *
+# Lunes a viernes: 0 2 * * 1-5

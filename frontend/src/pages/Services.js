@@ -40,9 +40,15 @@ const Services = () => {
   const filteredServices = services.filter(s => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
+    
+    // Generar nombre completo del cliente
+    const nombreCompleto = s.cliente 
+      ? `${s.cliente.primer_nombre || ''} ${s.cliente.segundo_nombre || ''} ${s.cliente.primer_apellido || ''} ${s.cliente.segundo_apellido || ''}`.toLowerCase().trim()
+      : '';
+    
     return (
       s.caso_numero?.toLowerCase().includes(search) ||
-      s.cliente?.nombre?.toLowerCase().includes(search) ||
+      nombreCompleto.includes(search) ||
       s.cliente?.email?.toLowerCase().includes(search) ||
       s.tecnico_asignado_nombre?.toLowerCase().includes(search) ||
       s.tipo_servicio_nombre?.toLowerCase().includes(search)
@@ -50,7 +56,11 @@ const Services = () => {
   });
 
   const [formData, setFormData] = useState({
-    cliente_nombre: '',
+    // Cliente - Estructura WorldOffice
+    cliente_primer_nombre: '',
+    cliente_segundo_nombre: '',
+    cliente_primer_apellido: '',
+    cliente_segundo_apellido: '',
     cliente_telefono: '',
     cliente_email: '',
     cliente_direccion: '',
@@ -119,7 +129,11 @@ const Services = () => {
   const handleCreate = () => {
     setModalType('create');
     setFormData({
-      cliente_nombre: '',
+      // Cliente - Estructura WorldOffice
+      cliente_primer_nombre: '',
+      cliente_segundo_nombre: '',
+      cliente_primer_apellido: '',
+      cliente_segundo_apellido: '',
       cliente_telefono: '',
       cliente_email: '',
       cliente_direccion: '',
@@ -200,7 +214,10 @@ const Services = () => {
 
         const payload = {
           cliente: {
-            nombre: formData.cliente_nombre,
+            primer_nombre: formData.cliente_primer_nombre,
+            segundo_nombre: formData.cliente_segundo_nombre || null,
+            primer_apellido: formData.cliente_primer_apellido,
+            segundo_apellido: formData.cliente_segundo_apellido || null,
             telefono: formData.cliente_telefono,
             email: formData.cliente_email,
             direccion: formData.cliente_direccion,
@@ -445,7 +462,9 @@ const Services = () => {
                   <div className="flex items-start space-x-2">
                     <User className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{service.cliente.nombre}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {`${service.cliente.primer_nombre} ${service.cliente.segundo_nombre || ''} ${service.cliente.primer_apellido} ${service.cliente.segundo_apellido || ''}`.trim()}
+                      </p>
                       <p className="text-xs text-gray-500">{service.cliente.email}</p>
                     </div>
                   </div>
@@ -605,19 +624,60 @@ const ServiceModal = ({
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2" />
-                Información del Cliente
+                Información del Cliente (WorldOffice)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nombre del Cliente *
+                    Primer Nombre *
                   </label>
                   <input
                     type="text"
-                    value={formData.cliente_nombre}
-                    onChange={(e) => setFormData({ ...formData, cliente_nombre: e.target.value })}
+                    value={formData.cliente_primer_nombre}
+                    onChange={(e) => setFormData({ ...formData, cliente_primer_nombre: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
+                    placeholder="Ej: Juan"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Segundo Nombre
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cliente_segundo_nombre}
+                    onChange={(e) => setFormData({ ...formData, cliente_segundo_nombre: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ej: Carlos (opcional)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Primer Apellido *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cliente_primer_apellido}
+                    onChange={(e) => setFormData({ ...formData, cliente_primer_apellido: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    required
+                    placeholder="Ej: Pérez"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Segundo Apellido
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cliente_segundo_apellido}
+                    onChange={(e) => setFormData({ ...formData, cliente_segundo_apellido: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ej: González (opcional)"
                   />
                 </div>
 
@@ -645,7 +705,7 @@ const ServiceModal = ({
                   />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Dirección *
                   </label>

@@ -19,8 +19,13 @@ TipoDocumento = Literal["cedula", "nit", "pasaporte", "cedula_extranjeria", "reg
 MedioPago = Literal["efectivo", "tarjeta_debito", "tarjeta_credito", "garantia", "credito", "transferencia"]
 
 class ClienteInfo(BaseModel):
-    """Información del cliente"""
-    nombre: str
+    """Información del cliente - Estructura WorldOffice"""
+    # Nombres y apellidos separados (estructura WorldOffice)
+    primer_nombre: str
+    segundo_nombre: Optional[str] = None
+    primer_apellido: str
+    segundo_apellido: Optional[str] = None
+    # Contacto
     telefono: str
     email: EmailStr
     direccion: str
@@ -30,6 +35,12 @@ class ClienteInfo(BaseModel):
     medio_pago: Optional[MedioPago] = None
     # Código interno de WorldOffice (para facturación)
     codigo_worldoffice: Optional[str] = None
+    
+    def nombre_completo(self) -> str:
+        """Genera el nombre completo a partir de los campos separados"""
+        nombres = [self.primer_nombre, self.segundo_nombre] if self.segundo_nombre else [self.primer_nombre]
+        apellidos = [self.primer_apellido, self.segundo_apellido] if self.segundo_apellido else [self.primer_apellido]
+        return " ".join(nombres + apellidos).strip()
 
 class ItemServicio(BaseModel):
     """Item individual de servicio dentro de una orden"""

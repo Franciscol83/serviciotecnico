@@ -95,4 +95,13 @@ export const inventarioAPI = {
   getAlertasStockBajo: () => apiClient.get('/inventario/alertas/stock-bajo'),
 };
 
+// Chat API
+export const chatAPI = {
+  getConversaciones: () => apiClient.get('/chat/conversaciones'),
+  getMensajes: (usuarioId, limit = 50) => apiClient.get(`/chat/mensajes/${usuarioId}`, { params: { limit } }),
+  crearMensaje: (data) => apiClient.post('/chat/mensajes', data),
+  marcarComoLeido: (mensajeId) => apiClient.put(`/chat/mensajes/${mensajeId}/leer`),
+  getUsuarios: () => apiClient.get('/chat/usuarios'),
+};
+
 export default apiClient;

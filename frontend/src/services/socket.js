@@ -8,6 +8,7 @@ const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 class SocketService {
   socket = null;
   isConnected = false;
+  usuarioId = null;
 
   /**
    * Conectar Socket.IO y autenticar usuario
@@ -16,6 +17,8 @@ class SocketService {
     if (this.socket?.connected) {
       return this.socket;
     }
+
+    this.usuarioId = userId;
 
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -55,6 +58,7 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
+      this.usuarioId = null;
     }
   }
 
@@ -89,8 +93,8 @@ class SocketService {
    * Usuario está escribiendo
    */
   typing(destinatario_id) {
-    if (this.socket?.connected) {
-      this.socket.emit('typing', { destinatario_id });
+    if (this.socket?.connected && this.usuarioId) {
+      this.socket.emit('typing', { destinatario_id, remitente_id: this.usuarioId });
     }
   }
 
@@ -98,8 +102,8 @@ class SocketService {
    * Usuario dejó de escribir
    */
   stopTyping(destinatario_id) {
-    if (this.socket?.connected) {
-      this.socket.emit('stop_typing', { destinatario_id });
+    if (this.socket?.connected && this.usuarioId) {
+      this.socket.emit('stop_typing', { destinatario_id, remitente_id: this.usuarioId });
     }
   }
 

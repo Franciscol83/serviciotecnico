@@ -103,6 +103,122 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Socket.IO Event Handlers
+@sio.event
+async def connect(sid, environ):
+    """Cliente conectado a Socket.IO"""
+    logger.info(f"Cliente conectado: {sid}")
+
+@sio.event
+async def disconnect(sid):
+    """Cliente desconectado de Socket.IO"""
+    logger.info(f"Cliente desconectado: {sid}")
+    # Actualizar estado offline en DB
+    try:
+        usuarios_online = await db.usuarios_online.find_one({"socket_id": sid})
+        if usuarios_online:
+            await db.usuarios_online.update_one(
+                {"socket_id": sid},
+                {"$set": {"online": False, "ultimo_visto": datetime.now(timezone.utc)}}
+            )
+    except Exception as e:
+        logger.error(f"Error actualizando estado offline: {e}")
+
+@sio.event
+async def authenticate(sid, data):
+    """Autenticar usuario en Socket.IO"""
+    try:
+        usuario_id = data.get('usuario_id')
+        if not usuario_id:
+            await sio.emit('error', {'message': 'usuario_id requerido'}, room=sid)
+            return
+        
+        # Registrar usuario online
+        await db.usuarios_online.update_one(
+            {"usuario_id": usuario_id},
+            {
+                "$set": {
+                    "socket_id": sid,
+                    "online": True,
+                    "ultimo_visto": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+        
+        await sio.emit('authenticated', {'usuario_id': usuario_id}, room=sid)
+        logger.info(f"Usuario autenticado: {usuario_id} (sid: {sid})")
+    except Exception as e:
+        logger.error(f"Error en authenticate: {e}")
+        await sio.emit('error', {'message': str(e)}, room=sid)
+
+@sio.event
+async def send_message(sid, data):
+    """Enviar mensaje en tiempo real"""
+    try:
+        destinatario_id = data.get('destinatario_id')
+        mensaje = data.get('mensaje')
+        
+        # Buscar socket del destinatario
+        destinatario_online = await db.usuarios_online.find_one({"usuario_id": destinatario_id})
+        
+        if destinatario_online and destinatario_online.get('online'):
+            # Enviar mensaje al destinatario
+            await sio.emit('new_message', mensaje, room=destinatario_online['socket_id'])
+        
+        # Confirmar entrega al remitente
+        await sio.emit('message_delivered', {'mensaje_id': mensaje.get('id')}, room=sid)
+        
+    except Exception as e:
+        logger.error(f"Error en send_message: {e}")
+        await sio.emit('error', {'message': str(e)}, room=sid)
+
+@sio.event
+async def typing(sid, data):
+    """Usuario está escribiendo"""
+    try:
+        destinatario_id = data.get('destinatario_id')
+        remitente_id = data.get('remitente_id')
+        
+        destinatario_online = await db.usuarios_online.find_one({"usuario_id": destinatario_id})
+        
+        if destinatario_online and destinatario_online.get('online'):
+            await sio.emit('user_typing', {'remitente_id': remitente_id}, room=destinatario_online['socket_id'])
+    except Exception as e:
+        logger.error(f"Error en typing: {e}")
+
+@sio.event
+async def stop_typing(sid, data):
+    """Usuario dejó de escribir"""
+    try:
+        destinatario_id = data.get('destinatario_id')
+        remitente_id = data.get('remitente_id')
+        
+        destinatario_online = await db.usuarios_online.find_one({"usuario_id": destinatario_id})
+        
+        if destinatario_online and destinatario_online.get('online'):
+            await sio.emit('user_stop_typing', {'remitente_id': remitente_id}, room=destinatario_online['socket_id'])
+    except Exception as e:
+        logger.error(f"Error en stop_typing: {e}")
+
+@sio.event
+async def message_read(sid, data):
+    """Marcar mensaje como leído"""
+    try:
+        mensaje_id = data.get('mensaje_id')
+        remitente_id = data.get('remitente_id')
+        
+        # Buscar socket del remitente para notificarle
+        remitente_online = await db.usuarios_online.find_one({"usuario_id": remitente_id})
+        
+        if remitente_online and remitente_online.get('online'):
+            await sio.emit('message_read_receipt', {'mensaje_id': mensaje_id}, room=remitente_online['socket_id'])
+    except Exception as e:
+        logger.error(f"Error en message_read: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Montar Socket.IO como aplicación ASGI
+socket_app = socketio.ASGIApp(sio, app)

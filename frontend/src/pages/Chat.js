@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { chatAPI } from '@/api/client';
+import socketService from '@/services/socket';
 import {
   Send,
   Search,
@@ -21,49 +23,154 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  // Mock data temporal (reemplazar con API)
+  // Conectar Socket.IO al montar el componente
   useEffect(() => {
-    // Simulación de usuarios
-    setUsers([
-      {
-        id: '1',
-        nombre_completo: 'Juan Pérez',
-        role: 'tecnico',
-        ultimo_mensaje: 'Entendido, estaré allí',
-        fecha_ultimo: new Date().toISOString(),
-        no_leidos: 2,
-        online: true
-      },
-      {
-        id: '2',
-        nombre_completo: 'María González',
-        role: 'supervisor',
-        ultimo_mensaje: '¿Cómo va el servicio?',
-        fecha_ultimo: new Date().toISOString(),
-        no_leidos: 0,
-        online: false
-      },
-    ]);
+    if (currentUser?.id) {
+      socketService.connect(currentUser.id);
+
+      // Escuchar mensajes nuevos
+      socketService.onNewMessage(handleNewMessage);
+
+      // Escuchar cuando alguien está escribiendo
+      socketService.onUserTyping((data) => {
+        if (data.remitente_id === selectedUser?.id) {
+          setIsTyping(true);
+        }
+      });
+
+      socketService.onUserStopTyping((data) => {
+        if (data.remitente_id === selectedUser?.id) {
+          setIsTyping(false);
+        }
+      });
+
+      // Escuchar confirmaciones de lectura
+      socketService.onMessageRead((data) => {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === data.mensaje_id ? { ...msg, leido: true } : msg
+          )
+        );
+      });
+
+      return () => {
+        socketService.offNewMessage();
+        socketService.disconnect();
+      };
+    }
+  }, [currentUser?.id]);
+
+  // Cargar usuarios disponibles para chat
+  useEffect(() => {
+    loadUsuarios();
   }, []);
 
-  const handleSendMessage = (e) => {
+  // Cargar mensajes cuando se selecciona un usuario
+  useEffect(() => {
+    if (selectedUser) {
+      loadMensajes(selectedUser.id);
+    }
+  }, [selectedUser]);
+
+  const loadUsuarios = async () => {
+    try {
+      setLoading(true);
+      const response = await chatAPI.getUsuarios();
+      setUsers(response.data.usuarios || []);
+    } catch (error) {
+      console.error('Error cargando usuarios:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMensajes = async (usuarioId) => {
+    try {
+      const response = await chatAPI.getMensajes(usuarioId, 50);
+      setMessages(response.data.mensajes || []);
+      
+      // Marcar mensajes como leídos
+      const mensajesNoLeidos = response.data.mensajes?.filter(
+        msg => msg.destinatario_id === currentUser.id && !msg.leido
+      );
+      
+      for (const msg of mensajesNoLeidos) {
+        await chatAPI.marcarComoLeido(msg.id);
+        socketService.messageRead(msg.id, msg.remitente_id);
+      }
+    } catch (error) {
+      console.error('Error cargando mensajes:', error);
+    }
+  };
+
+  const handleNewMessage = (mensaje) => {
+    // Si el mensaje es del usuario seleccionado, agregarlo
+    if (mensaje.remitente_id === selectedUser?.id || mensaje.destinatario_id === selectedUser?.id) {
+      setMessages(prev => [...prev, mensaje]);
+      
+      // Si es un mensaje recibido, marcarlo como leído
+      if (mensaje.destinatario_id === currentUser.id) {
+        chatAPI.marcarComoLeido(mensaje.id);
+        socketService.messageRead(mensaje.id, mensaje.remitente_id);
+      }
+    }
+    
+    // Actualizar la lista de usuarios
+    loadUsuarios();
+  };
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser) return;
 
-    const mensaje = {
-      id: Date.now().toString(),
-      texto: newMessage,
-      remitente_id: currentUser.id,
-      destinatario_id: selectedUser.id,
-      fecha: new Date().toISOString(),
-      leido: false
-    };
+    try {
+      // Crear mensaje vía API
+      const response = await chatAPI.crearMensaje({
+        destinatario_id: selectedUser.id,
+        texto: newMessage,
+        tipo: 'texto'
+      });
 
-    setMessages([...messages, mensaje]);
-    setNewMessage('');
-    scrollToBottom();
+      const mensaje = response.data;
+
+      // Enviar por Socket.IO para tiempo real
+      socketService.sendMessage({
+        destinatario_id: selectedUser.id,
+        mensaje: mensaje
+      });
+
+      // Agregar mensaje localmente
+      setMessages([...messages, mensaje]);
+      setNewMessage('');
+      scrollToBottom();
+      
+      // Detener indicador de escritura
+      socketService.stopTyping(selectedUser.id);
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      alert('Error enviando mensaje. Intenta de nuevo.');
+    }
+  };
+
+  const handleTyping = () => {
+    if (selectedUser && currentUser) {
+      socketService.typing(selectedUser.id);
+      
+      // Limpiar timeout anterior
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Detener typing después de 2 segundos sin escribir
+      typingTimeoutRef.current = setTimeout(() => {
+        socketService.stopTyping(selectedUser.id);
+      }, 2000);
+    }
   };
 
   const scrollToBottom = () => {
@@ -108,7 +215,7 @@ const Chat = () => {
             {filteredUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-500">
                 <User className="w-16 h-16 mb-2" />
-                <p>No hay contactos</p>
+                <p>{loading ? 'Cargando...' : 'No hay contactos'}</p>
               </div>
             ) : (
               filteredUsers.map((usuario) => (
@@ -123,7 +230,7 @@ const Chat = () => {
                   {/* Avatar */}
                   <div className="relative">
                     <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                      {usuario.nombre_completo.charAt(0)}
+                      {usuario.nombre_completo.charAt(0).toUpperCase()}
                     </div>
                     {usuario.online && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -136,22 +243,14 @@ const Chat = () => {
                       <p className="font-semibold text-gray-900 dark:text-white truncate">
                         {usuario.nombre_completo}
                       </p>
-                      <span className="text-xs text-gray-500">
-                        {new Date(usuario.fecha_ultimo).toLocaleTimeString('es', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
+                      <span className="text-xs text-gray-500 capitalize">
+                        {usuario.role}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {usuario.ultimo_mensaje}
+                        {usuario.email}
                       </p>
-                      {usuario.no_leidos > 0 && (
-                        <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                          {usuario.no_leidos}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </button>
@@ -206,43 +305,52 @@ const Chat = () => {
                   <p className="text-sm mt-2">Envía un mensaje para comenzar</p>
                 </div>
               ) : (
-                messages.map((msg) => {
-                  const esMio = msg.remitente_id === currentUser.id;
-                  
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${esMio ? 'justify-end' : 'justify-start'}`}
-                    >
+                <>
+                  {messages.map((msg) => {
+                    const esMio = msg.remitente_id === currentUser.id;
+                    
+                    return (
                       <div
-                        className={`
-                          max-w-[70%] rounded-lg px-4 py-2
-                          ${esMio 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
-                          }
-                        `}
+                        key={msg.id}
+                        className={`flex ${esMio ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm">{msg.texto}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <span className={`text-xs ${esMio ? 'text-blue-100' : 'text-gray-500'}`}>
-                            {new Date(msg.fecha).toLocaleTimeString('es', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                          {esMio && (
-                            msg.leido ? (
-                              <CheckCheck className="w-4 h-4 text-blue-100" />
-                            ) : (
-                              <Check className="w-4 h-4 text-blue-100" />
-                            )
-                          )}
+                        <div
+                          className={`
+                            max-w-[70%] rounded-lg px-4 py-2
+                            ${esMio 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                            }
+                          `}
+                        >
+                          <p className="text-sm">{msg.texto}</p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className={`text-xs ${esMio ? 'text-blue-100' : 'text-gray-500'}`}>
+                              {new Date(msg.fecha).toLocaleTimeString('es', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                            {esMio && (
+                              msg.leido ? (
+                                <CheckCheck className="w-4 h-4 text-blue-100" />
+                              ) : (
+                                <Check className="w-4 h-4 text-blue-100" />
+                              )
+                            )}
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-2">
+                        <p className="text-sm text-gray-500">Escribiendo...</p>
+                      </div>
                     </div>
-                  );
-                })
+                  )}
+                </>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -260,7 +368,10 @@ const Chat = () => {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
                   placeholder="Escribe un mensaje..."
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />

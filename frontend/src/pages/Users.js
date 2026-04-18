@@ -35,22 +35,21 @@ const Users = () => {
     activo: true,
   });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await usersAPI.getAll();
       setUsers(response.data);
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
       showMessage('Error al cargar usuarios', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type });
@@ -100,7 +99,6 @@ const Users = () => {
       setShowModal(false);
       loadUsers();
     } catch (error) {
-      console.error('Error:', error);
       showMessage(error.response?.data?.detail || 'Error al guardar usuario', 'error');
     }
   };
@@ -115,7 +113,6 @@ const Users = () => {
       showMessage('Usuario eliminado exitosamente', 'success');
       loadUsers();
     } catch (error) {
-      console.error('Error:', error);
       showMessage(error.response?.data?.detail || 'Error al eliminar usuario', 'error');
     }
   };

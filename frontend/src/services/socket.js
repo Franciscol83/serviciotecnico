@@ -28,23 +28,21 @@ class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket.IO conectado');
       this.isConnected = true;
       // Autenticar usuario
       this.socket.emit('authenticate', { usuario_id: userId });
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ Socket.IO desconectado');
       this.isConnected = false;
     });
 
     this.socket.on('authenticated', (data) => {
-      console.log('🔐 Autenticado en Socket.IO', data);
+      // Usuario autenticado exitosamente
     });
 
     this.socket.on('error', (error) => {
-      console.error('❌ Socket.IO error:', error);
+      // Error en Socket.IO
     });
 
     return this.socket;

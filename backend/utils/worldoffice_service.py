@@ -243,7 +243,7 @@ class WorldOfficeService:
 
 
 # Singleton instance
-_worldoffice_service = None
+_worldoffice_service: WorldOfficeService | None = None
 
 def get_worldoffice_service() -> WorldOfficeService:
     """Obtener instancia singleton del servicio WorldOffice"""

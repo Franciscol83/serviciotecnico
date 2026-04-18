@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatAPI } from '@/api/client';
@@ -63,7 +63,7 @@ const Chat = () => {
         socketService.disconnect();
       };
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, selectedUser?.id, handleNewMessage]);
 
   // Cargar usuarios disponibles para chat
   useEffect(() => {
@@ -83,7 +83,7 @@ const Chat = () => {
       const response = await chatAPI.getUsuarios();
       setUsers(response.data.usuarios || []);
     } catch (error) {
-      console.error('Error cargando usuarios:', error);
+      // Error silencioso
     } finally {
       setLoading(false);
     }
@@ -104,11 +104,11 @@ const Chat = () => {
         socketService.messageRead(msg.id, msg.remitente_id);
       }
     } catch (error) {
-      console.error('Error cargando mensajes:', error);
+      // Error silencioso
     }
   };
 
-  const handleNewMessage = (mensaje) => {
+  const handleNewMessage = useCallback((mensaje) => {
     // Si el mensaje es del usuario seleccionado, agregarlo
     if (mensaje.remitente_id === selectedUser?.id || mensaje.destinatario_id === selectedUser?.id) {
       setMessages(prev => [...prev, mensaje]);
@@ -122,7 +122,7 @@ const Chat = () => {
     
     // Actualizar la lista de usuarios
     loadUsuarios();
-  };
+  }, [selectedUser?.id, currentUser.id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -152,7 +152,6 @@ const Chat = () => {
       // Detener indicador de escritura
       socketService.stopTyping(selectedUser.id);
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
       alert('Error enviando mensaje. Intenta de nuevo.');
     }
   };

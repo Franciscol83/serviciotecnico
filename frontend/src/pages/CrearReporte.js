@@ -12,6 +12,10 @@ const Reportes = () => {
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState(null);
   const signatureRef = useRef(null);
+  
+  // Estados para búsqueda y filtro de servicios
+  const [searchServicio, setSearchServicio] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos'); // todos, aprobado, en_proceso
 
   const [formData, setFormData] = useState({
     servicio_id: '',
@@ -54,6 +58,26 @@ const Reportes = () => {
       setLoading(false);
     }
   };
+
+  // Filtrar servicios según búsqueda y estado
+  const serviciosFiltrados = servicios.filter(servicio => {
+    // Filtro por estado
+    if (filtroEstado !== 'todos' && servicio.estado !== filtroEstado) {
+      return false;
+    }
+    
+    // Filtro por búsqueda
+    if (searchServicio.trim()) {
+      const search = searchServicio.toLowerCase();
+      const nombreCliente = `${servicio.cliente.primer_nombre} ${servicio.cliente.segundo_nombre || ''} ${servicio.cliente.primer_apellido} ${servicio.cliente.segundo_apellido || ''}`.toLowerCase();
+      const casoNumero = servicio.caso_numero.toLowerCase();
+      const tipoServicio = servicio.tipo_servicio_nombre.toLowerCase();
+      
+      return nombreCliente.includes(search) || casoNumero.includes(search) || tipoServicio.includes(search);
+    }
+    
+    return true;
+  });
 
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type });
@@ -292,11 +316,39 @@ const Reportes = () => {
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Selección de Servicio */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Servicio *
+                  {/* Selección de Servicio con Búsqueda y Filtro */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Seleccionar Servicio *
                     </label>
+                    
+                    {/* Búsqueda y Filtro */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="🔍 Buscar por caso, cliente o tipo..."
+                        value={searchServicio}
+                        onChange={(e) => setSearchServicio(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                      />
+                      
+                      <select
+                        value={filtroEstado}
+                        onChange={(e) => setFiltroEstado(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                      >
+                        <option value="todos">📋 Todos los estados</option>
+                        <option value="aprobado">✅ Aprobados</option>
+                        <option value="en_proceso">⏳ En Proceso</option>
+                      </select>
+                    </div>
+                    
+                    {/* Contador de resultados */}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Mostrando {serviciosFiltrados.length} de {servicios.length} servicios
+                    </div>
+                    
+                    {/* Selector de Servicio */}
                     <select
                       value={formData.servicio_id}
                       onChange={(e) => setFormData({ ...formData, servicio_id: e.target.value })}
@@ -304,7 +356,7 @@ const Reportes = () => {
                       required
                     >
                       <option value="">Seleccionar servicio...</option>
-                      {servicios.map((servicio) => {
+                      {serviciosFiltrados.map((servicio) => {
                         const nombreCliente = `${servicio.cliente.primer_nombre} ${servicio.cliente.segundo_nombre || ''} ${servicio.cliente.primer_apellido} ${servicio.cliente.segundo_apellido || ''}`.trim();
                         return (
                           <option key={servicio.id} value={servicio.id}>
@@ -464,24 +516,54 @@ const Reportes = () => {
                       Fotos del Trabajo
                     </h3>
                     
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      multiple
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="foto-upload"
-                    />
-                    <label
-                      htmlFor="foto-upload"
-                      className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-                    >
-                      <Camera className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        📸 Toca para usar cámara o subir fotos (máx 5MB)
-                      </span>
-                    </label>
+                    {/* Botones para capturar o subir */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      {/* Tomar foto con cámara */}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="foto-camera"
+                        />
+                        <label
+                          htmlFor="foto-camera"
+                          className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors"
+                        >
+                          <Camera className="w-5 h-5 mr-2" />
+                          <span className="text-sm font-medium">
+                            📸 Tomar Foto
+                          </span>
+                        </label>
+                      </div>
+                      
+                      {/* Subir desde archivo */}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="foto-upload"
+                        />
+                        <label
+                          htmlFor="foto-upload"
+                          className="flex items-center justify-center px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                        >
+                          <Plus className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                            📁 Subir Archivo
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                      Tamaño máximo por foto: 5MB. Puedes subir múltiples fotos.
+                    </p>
 
                     {formData.fotos.length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">

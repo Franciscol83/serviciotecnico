@@ -84,7 +84,7 @@ const Sidebar = () => {
       {/* Mobile Header con Hamburger */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 dark:bg-gray-800 text-white px-4 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
-          <img src="/logo192.png" alt="TecnoNacho" className="h-8 w-8" />
+          <img src="/logo-tecnonacho.png" alt="TecnoNacho" className="h-8 w-8" />
           <span className="font-bold text-lg">TecnoNacho</span>
         </div>
         <button
@@ -115,7 +115,7 @@ const Sidebar = () => {
       >
         {/* Logo - Solo desktop */}
         <div className="hidden lg:flex items-center gap-3 p-6 border-b border-gray-700">
-          <img src="/logo192.png" alt="TecnoNacho" className="h-10 w-10" />
+          <img src="/logo-tecnonacho.png" alt="TecnoNacho" className="h-10 w-10" />
           <div>
             <h1 className="font-bold text-xl">TecnoNacho</h1>
             <p className="text-xs text-gray-400">Tu mejor opción</p>

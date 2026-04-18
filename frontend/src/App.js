@@ -15,6 +15,11 @@ import CrearReporte from "@/pages/CrearReporte";
 import ReporteDetalle from "@/pages/ReporteDetalle";
 import Configuracion from "@/pages/Configuracion";
 
+// Constantes de roles para evitar inline arrays (mejor performance)
+const ADMIN_SUPERVISOR_ROLES = ["admin", "supervisor"];
+const ADMIN_ONLY_ROLES = ["admin"];
+const TECHNICAL_ROLES = ["admin", "supervisor", "tecnico"];
+
 // Componente para redirigir al dashboard o login
 const Home = () => {
   const { isAuthenticated } = useAuth();
@@ -48,7 +53,7 @@ function App() {
               <Route
                 path="/users"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "supervisor"]}>
+                  <ProtectedRoute allowedRoles={ADMIN_SUPERVISOR_ROLES}>
                     <Users />
                   </ProtectedRoute>
                 }
@@ -68,7 +73,7 @@ function App() {
               <Route
                 path="/service-types"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "supervisor"]}>
+                  <ProtectedRoute allowedRoles={ADMIN_SUPERVISOR_ROLES}>
                     <ServiceTypes />
                   </ProtectedRoute>
                 }
@@ -88,7 +93,7 @@ function App() {
               <Route
                 path="/reportes"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                  <ProtectedRoute allowedRoles={TECHNICAL_ROLES}>
                     <ReportesLista />
                   </ProtectedRoute>
                 }
@@ -98,7 +103,7 @@ function App() {
               <Route
                 path="/reportes/crear"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                  <ProtectedRoute allowedRoles={TECHNICAL_ROLES}>
                     <CrearReporte />
                   </ProtectedRoute>
                 }
@@ -108,7 +113,7 @@ function App() {
               <Route
                 path="/reportes/:id"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "supervisor", "tecnico"]}>
+                  <ProtectedRoute allowedRoles={TECHNICAL_ROLES}>
                     <ReporteDetalle />
                   </ProtectedRoute>
                 }
@@ -118,7 +123,7 @@ function App() {
               <Route
                 path="/configuracion"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={ADMIN_ONLY_ROLES}>
                     <Configuracion />
                   </ProtectedRoute>
                 }

@@ -157,3 +157,42 @@ def create_modification_record(
         "usuario_nombre": usuario_nombre,
         "detalles": detalles or {}
     }
+
+
+async def verify_service_type_exists(db, tipo_servicio_id: str) -> Dict[str, Any]:
+    """
+    Verifica que un tipo de servicio existe y está activo
+    Retorna el tipo de servicio o lanza HTTPException
+    """
+    from fastapi import HTTPException, status
+    
+    tipo_servicio = await db.service_types.find_one({"id": tipo_servicio_id, "activo": True})
+    if not tipo_servicio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tipo de servicio no encontrado o inactivo"
+        )
+    return tipo_servicio
+
+
+async def verify_technician_exists(db, tecnico_id: str) -> Dict[str, Any]:
+    """
+    Verifica que un técnico existe
+    Retorna el técnico o lanza HTTPException
+    """
+    from fastapi import HTTPException, status
+    
+    tecnico = await db.users.find_one({"id": tecnico_id, "role": "tecnico"})
+    if not tecnico:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Técnico no encontrado"
+        )
+    return tecnico
+
+
+def determine_initial_status(user_role: str) -> str:
+    """
+    Determina el estado inicial del servicio según el rol del usuario
+    """
+    return "aprobado" if user_role in ["admin", "supervisor"] else "pendiente_aprobacion"

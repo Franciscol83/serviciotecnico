@@ -13,7 +13,10 @@ from utils.service_helpers import (
     generate_case_number,
     get_next_sequence_number,
     validate_service_data,
-    create_modification_record
+    create_modification_record,
+    verify_service_type_exists,
+    verify_technician_exists,
+    determine_initial_status
 )
 
 router = APIRouter(prefix="/services", tags=["Servicios"])
@@ -67,26 +70,16 @@ async def create_service(
         )
     
     # Verificar que el tipo de servicio principal existe
-    tipo_servicio = await db.service_types.find_one({"id": service_data.tipo_servicio_id, "activo": True})
-    if not tipo_servicio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tipo de servicio no encontrado o inactivo"
-        )
+    tipo_servicio = await verify_service_type_exists(db, service_data.tipo_servicio_id)
     
     # Verificar que el técnico existe
-    tecnico = await db.users.find_one({"id": service_data.tecnico_asignado_id, "role": "tecnico"})
-    if not tecnico:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Técnico no encontrado"
-        )
+    tecnico = await verify_technician_exists(db, service_data.tecnico_asignado_id)
     
     # Generar número de caso
     caso_numero = await get_next_caso_numero()
     
     # Determinar estado inicial según rol
-    estado_inicial = "aprobado" if current_user["role"] in ["admin", "supervisor"] else "pendiente_aprobacion"
+    estado_inicial = determine_initial_status(current_user["role"])
     
     # Procesar items adicionales
     items_servicio = []

@@ -323,13 +323,18 @@ const Reportes = () => {
                     
                     {/* Búsqueda y Filtro */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        placeholder="🔍 Buscar por caso, cliente o tipo..."
-                        value={searchServicio}
-                        onChange={(e) => setSearchServicio(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="🔍 Buscar por caso (TN-2026-00001), cliente o tipo..."
+                          value={searchServicio}
+                          onChange={(e) => setSearchServicio(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Ejemplo: TN-2026-00001, Juan Pérez, Configuración PC
+                        </p>
+                      </div>
                       
                       <select
                         value={filtroEstado}
@@ -354,7 +359,11 @@ const Reportes = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
                     >
-                      <option value="">Seleccionar servicio...</option>
+                      <option value="">
+                        {serviciosFiltrados.length === 0 
+                          ? "No hay servicios disponibles" 
+                          : "Seleccionar servicio..."}
+                      </option>
                       {serviciosFiltrados.map((servicio) => {
                         const nombreCliente = `${servicio.cliente.primer_nombre} ${servicio.cliente.segundo_nombre || ''} ${servicio.cliente.primer_apellido} ${servicio.cliente.segundo_apellido || ''}`.trim();
                         return (
@@ -364,6 +373,12 @@ const Reportes = () => {
                         );
                       })}
                     </select>
+                    
+                    {serviciosFiltrados.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        💡 No hay servicios que coincidan. Prueba buscar por caso número (ej: TN-2026-00001)
+                      </p>
+                    )}
                   </div>
 
                   {/* Trabajo Realizado */}
@@ -517,7 +532,7 @@ const Reportes = () => {
                     
                     {/* Botones para capturar o subir */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                      {/* Tomar foto con cámara */}
+                      {/* Tomar foto con cámara (SOLO MÓVIL) */}
                       <div>
                         <input
                           type="file"
@@ -533,9 +548,12 @@ const Reportes = () => {
                         >
                           <Camera className="w-5 h-5 mr-2" />
                           <span className="text-sm font-medium">
-                            📸 Tomar Foto
+                            📸 Tomar Foto (Móvil)
                           </span>
                         </label>
+                        <p className="text-xs text-gray-500 mt-1 text-center">
+                          Funciona solo en celular/tablet
+                        </p>
                       </div>
                       
                       {/* Subir desde archivo */}
@@ -554,9 +572,12 @@ const Reportes = () => {
                         >
                           <Plus className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2" />
                           <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-                            📁 Subir Archivo
+                            📁 Subir Fotos (PC)
                           </span>
                         </label>
+                        <p className="text-xs text-gray-500 mt-1 text-center">
+                          Seleccionar una o varias fotos
+                        </p>
                       </div>
                     </div>
                     

@@ -26,8 +26,8 @@ app = FastAPI(title="Tecno Nacho SAS - API", version="2.0.0")
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins='*',
-    logger=False,
-    engineio_logger=False
+    logger=True,
+    engineio_logger=True
 )
 
 # Security Headers Middleware

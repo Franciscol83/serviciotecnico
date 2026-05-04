@@ -2,7 +2,13 @@
 Servicio de integración con WorldOffice (SQL Server)
 Permite consultar y sincronizar datos contables
 """
-import pyodbc
+try:
+    import pyodbc
+    PYODBC_AVAILABLE = True
+except ImportError:
+    PYODBC_AVAILABLE = False
+    pyodbc = None
+
 import os
 from typing import List, Dict, Optional, Any
 from datetime import datetime
@@ -12,6 +18,9 @@ class WorldOfficeService:
     """Servicio para conectar con base de datos WorldOffice"""
     
     def __init__(self):
+        if not PYODBC_AVAILABLE:
+            raise ImportError("pyodbc no está disponible. Instala unixODBC y pyodbc para usar WorldOffice.")
+        
         self.host = os.environ.get('SQLSERVER_HOST', 'SERTECNO')
         self.instance = os.environ.get('SQLSERVER_INSTANCE', 'WORLDOFFICE14')
         self.database = os.environ.get('SQLSERVER_DATABASE', 'Melissa_2023')

@@ -6,7 +6,17 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import os
 from middleware.auth import get_current_user, require_roles
-from utils.worldoffice_service import get_worldoffice_service
+
+try:
+    from utils.worldoffice_service import get_worldoffice_service
+    WORLDOFFICE_AVAILABLE = True
+except ImportError:
+    WORLDOFFICE_AVAILABLE = False
+    def get_worldoffice_service():
+        raise HTTPException(
+            status_code=503,
+            detail="WorldOffice no está disponible. Instala pyodbc y unixODBC."
+        )
 
 router = APIRouter(prefix="/worldoffice", tags=["WorldOffice"])
 

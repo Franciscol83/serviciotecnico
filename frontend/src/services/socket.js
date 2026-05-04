@@ -3,7 +3,14 @@
  */
 import io from 'socket.io-client';
 
-const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// Obtener la URL base del backend sin el /api
+const getSocketURL = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+  // Si la URL termina en /api, quitarlo para Socket.IO
+  return backendUrl.replace(/\/api$/, '');
+};
+
+const SOCKET_URL = getSocketURL();
 
 class SocketService {
   socket = null;
@@ -21,10 +28,12 @@ class SocketService {
     this.usuarioId = userId;
 
     this.socket = io(SOCKET_URL, {
+      path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      timeout: 10000,
     });
 
     this.socket.on('connect', () => {

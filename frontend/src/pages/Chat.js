@@ -66,18 +66,6 @@ const Chat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, selectedUser?.id]);
 
-  // Cargar usuarios disponibles para chat
-  useEffect(() => {
-    loadUsuarios();
-  }, []);
-
-  // Cargar mensajes cuando se selecciona un usuario
-  useEffect(() => {
-    if (selectedUser) {
-      loadMensajes(selectedUser.id);
-    }
-  }, [selectedUser, loadMensajes]);
-
   const loadUsuarios = async () => {
     try {
       setLoading(true);
@@ -124,6 +112,18 @@ const Chat = () => {
     // Actualizar la lista de usuarios
     loadUsuarios();
   }, [selectedUser?.id, currentUser.id]);
+
+  // Cargar usuarios disponibles para chat
+  useEffect(() => {
+    loadUsuarios();
+  }, []);
+
+  // Cargar mensajes cuando se selecciona un usuario
+  useEffect(() => {
+    if (selectedUser) {
+      loadMensajes(selectedUser.id);
+    }
+  }, [selectedUser, loadMensajes]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();

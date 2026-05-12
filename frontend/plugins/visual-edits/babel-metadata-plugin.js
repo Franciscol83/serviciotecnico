@@ -913,68 +913,79 @@ const babelMetadataPlugin = ({ types: t }) => {
 
       let result = null;
 
-      traverse(ast, {
-        ImportDeclaration(importPath) {
-          if (result) return;
+      try {
+        traverse(ast, {
+          ImportDeclaration(importPath) {
+            if (result) return;
 
-          const source = importPath.node.source.value;
-          const resolvedPath = resolveImportPath(source, absPath);
-          if (resolvedPath !== componentFile) return;
+            try {
+              const source = importPath.node.source.value;
+              const resolvedPath = resolveImportPath(source, absPath);
+              if (resolvedPath !== componentFile) return;
 
-          // Find the local name for this import
-          let localName = null;
-          for (const spec of importPath.node.specifiers) {
-            if (t.isImportSpecifier(spec) && spec.imported.name === componentName) {
-              localName = spec.local.name;
-            } else if (t.isImportDefaultSpecifier(spec)) {
-              localName = spec.local.name;
-            }
-          }
-          if (!localName) return;
-
-          // Search for usages of this component
-          // Safety check for null parent paths
-          if (!importPath.parentPath || !importPath.parentPath.parentPath) {
-            return;
-          }
-          
-          importPath.parentPath.parentPath.traverse({
-            JSXOpeningElement(jsxPath) {
-              if (result) return;
-
-              const elemName = getJSXElementName(jsxPath.node);
-              if (elemName !== localName) return;
-
-              // Find the prop
-              for (const attr of jsxPath.node.attributes || []) {
-                if (!t.isJSXAttribute(attr)) continue;
-                if (!t.isJSXIdentifier(attr.name) || attr.name.name !== propName) continue;
-                if (!t.isJSXExpressionContainer(attr.value)) continue;
-
-                const attrPath = jsxPath.get('attributes').find(
-                  a => a.isJSXAttribute() && a.node.name?.name === propName
-                );
-
-                if (attrPath) {
-                  const valuePath = attrPath.get('value.expression');
-                  if (valuePath?.node) {
-                    const mockState = { filename: absPath };
-                    result = analyzeExpression(valuePath, mockState);
-
-                    // Cache for future
-                    const cacheKey = `${componentFile}::${componentName}::${propName}`;
-                    PROP_SOURCE_CACHE.set(cacheKey, {
-                      sourceInfo: result,
-                      arrayContext: result?.arrayContext,
-                      fromFile: absPath
-                    });
-                  }
+              // Find the local name for this import
+              let localName = null;
+              for (const spec of importPath.node.specifiers) {
+                if (t.isImportSpecifier(spec) && spec.imported.name === componentName) {
+                  localName = spec.local.name;
+                } else if (t.isImportDefaultSpecifier(spec)) {
+                  localName = spec.local.name;
                 }
               }
+              if (!localName) return;
+
+              // Search for usages of this component
+              // Safety check for null parent paths
+              if (!importPath.parentPath || !importPath.parentPath.parentPath) {
+                return;
+              }
+              
+              importPath.parentPath.parentPath.traverse({
+                JSXOpeningElement(jsxPath) {
+                  if (result) return;
+
+                  const elemName = getJSXElementName(jsxPath.node);
+                  if (elemName !== localName) return;
+
+                  // Find the prop
+                  for (const attr of jsxPath.node.attributes || []) {
+                    if (!t.isJSXAttribute(attr)) continue;
+                    if (!t.isJSXIdentifier(attr.name) || attr.name.name !== propName) continue;
+                    if (!t.isJSXExpressionContainer(attr.value)) continue;
+
+                    const attrPath = jsxPath.get('attributes').find(
+                      a => a.isJSXAttribute() && a.node.name?.name === propName
+                    );
+
+                    if (attrPath) {
+                      const valuePath = attrPath.get('value.expression');
+                      if (valuePath?.node) {
+                        const mockState = { filename: absPath };
+                        result = analyzeExpression(valuePath, mockState);
+
+                        // Cache for future
+                        const cacheKey = `${componentFile}::${componentName}::${propName}`;
+                        PROP_SOURCE_CACHE.set(cacheKey, {
+                          sourceInfo: result,
+                          arrayContext: result?.arrayContext,
+                          fromFile: absPath
+                        });
+                      }
+                    }
+                  }
+                }
+              });
+            } catch (err) {
+              // Silently skip this import if there's an error
+              // This prevents the entire compilation from failing
+              return;
             }
-          });
-        }
-      });
+          }
+        });
+      } catch (err) {
+        // If traverse fails completely, just skip this file
+        continue;
+      }
 
       if (result) return result;
     }

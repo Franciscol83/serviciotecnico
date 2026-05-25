@@ -102,3 +102,54 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// ============================================================================
+// PUSH NOTIFICATIONS
+// ============================================================================
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Tecno Nacho', body: event.data ? event.data.text() : 'Notificación' };
+  }
+
+  const title = data.title || 'Tecno Nacho';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || '/logo-tecnonacho.png',
+    badge: data.icon || '/logo-tecnonacho.png',
+    tag: data.tag || 'tecnonacho-notification',
+    renotify: true,
+    data: {
+      url: data.url || '/',
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si ya hay una ventana abierta, enfoca y navega
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) {
+            try { client.navigate(targetUrl); } catch (e) { /* ignore */ }
+          }
+          return;
+        }
+      }
+      // Si no hay ventana abierta, abre una nueva
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

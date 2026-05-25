@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Importar rutas
-from routes import auth, users, services, service_types, reportes, inventario, worldoffice, chat
+from routes import auth, users, services, service_types, reportes, inventario, worldoffice, chat, notifications
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -84,6 +84,7 @@ api_router.include_router(reportes.router)
 api_router.include_router(inventario.router)
 api_router.include_router(worldoffice.router)
 api_router.include_router(chat.router)
+api_router.include_router(notifications.router)
 
 # Include the router in the main app
 app.include_router(api_router)

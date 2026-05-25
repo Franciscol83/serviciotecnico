@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import { Settings, Image, FileText, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import PushNotificationsCard from '@/components/notifications/PushNotificationsCard';
 
 const Configuracion = () => {
   const { user: currentUser } = useAuth();
@@ -105,6 +106,8 @@ const Configuracion = () => {
         )}
 
         <div className="space-y-6">
+          <PushNotificationsCard onMessage={showMessage} />
+
           {/* Información de la Empresa */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">

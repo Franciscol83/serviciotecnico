@@ -9,6 +9,7 @@ import os
 
 from models.mensaje import Mensaje, MensajeCreate, MensajeUpdate, Conversacion
 from middleware.auth import get_current_user
+from services.push_service import send_push_to_user
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -163,6 +164,25 @@ async def crear_mensaje(
             await db.conversaciones.insert_one(nueva_conversacion)
         
         mensaje.pop("_id", None)
+
+        # Enviar push notification al destinatario si está offline (best-effort, no bloquea)
+        try:
+            destinatario_online = await db.usuarios_online.find_one({"usuario_id": mensaje_data.destinatario_id})
+            esta_offline = not destinatario_online or not destinatario_online.get("online", False)
+            if esta_offline:
+                preview = mensaje_data.texto[:80]
+                await send_push_to_user(
+                    user_id=mensaje_data.destinatario_id,
+                    title=f"Mensaje de {current_user['nombre_completo']}",
+                    body=preview,
+                    url="/chat",
+                    tag=f"chat-{conversacion_id}",
+                )
+        except Exception as push_err:
+            # No fallar el mensaje por error en push
+            import logging
+            logging.getLogger(__name__).warning(f"Error push (no crítico): {push_err}")
+
         return mensaje
         
     except HTTPException:

@@ -6,6 +6,7 @@ from models.user import UserLogin, UserCreate, Token, User, UserInDB
 from utils.password import hash_password, verify_password
 from utils.jwt_handler import create_access_token
 from middleware.auth import get_current_user
+from services.audit_service import log_action
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -54,7 +55,7 @@ async def register(user_data: UserCreate, current_user: dict = Depends(get_curre
     return User(**user_dict, id=user_obj.id, fecha_creacion=user_obj.fecha_creacion, fecha_actualizacion=user_obj.fecha_actualizacion)
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, response: Response):
+async def login(credentials: UserLogin, response: Response, request: Request):
     """
     Iniciar sesión y obtener token JWT
     El token se envía en una cookie httpOnly para mayor seguridad
@@ -64,6 +65,11 @@ async def login(credentials: UserLogin, response: Response):
     # Buscar usuario por email
     user = await db.users.find_one({"email": credentials.email})
     if not user:
+        await log_action(
+            accion="login_failed", entidad="auth",
+            detalles={"email": credentials.email, "razon": "usuario_no_existe"},
+            request=request, success=False, error_message="Usuario no encontrado",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
@@ -71,6 +77,12 @@ async def login(credentials: UserLogin, response: Response):
     
     # Verificar contraseña
     if not verify_password(credentials.password, user["password_hash"]):
+        await log_action(
+            accion="login_failed", entidad="auth",
+            usuario={"id": user["id"], "nombre_completo": user.get("nombre_completo"), "role": user.get("role")},
+            detalles={"email": credentials.email, "razon": "password_incorrecta"},
+            request=request, success=False, error_message="Password incorrecta",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
@@ -78,6 +90,12 @@ async def login(credentials: UserLogin, response: Response):
     
     # Verificar si el usuario está activo
     if not user.get("activo", True):
+        await log_action(
+            accion="login_failed", entidad="auth",
+            usuario={"id": user["id"], "nombre_completo": user.get("nombre_completo"), "role": user.get("role")},
+            detalles={"razon": "usuario_inactivo"},
+            request=request, success=False, error_message="Usuario inactivo",
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo. Contacte al administrador."
@@ -107,7 +125,13 @@ async def login(credentials: UserLogin, response: Response):
     
     # Retornar usuario (el token está en la cookie)
     user_data = {k: v for k, v in user.items() if k not in ['_id', 'password_hash']}
-    
+
+    await log_action(
+        accion="login_success", entidad="auth",
+        usuario={"id": user["id"], "nombre_completo": user.get("nombre_completo"), "role": user.get("role")},
+        entidad_id=user["id"], request=request,
+    )
+
     return Token(
         access_token=access_token,  # Enviado también en response por compatibilidad transitoria
         user=User(**user_data)
@@ -121,9 +145,14 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return User(**current_user)
 
 @router.post("/logout")
-async def logout(response: Response, current_user: dict = Depends(get_current_user)):
+async def logout(response: Response, request: Request, current_user: dict = Depends(get_current_user)):
     """
     Cerrar sesión eliminando la cookie httpOnly
     """
     response.delete_cookie(key="access_token")
+    await log_action(
+        accion="logout", entidad="auth",
+        usuario=current_user, entidad_id=current_user.get("id"),
+        request=request,
+    )
     return {"message": "Sesión cerrada exitosamente"}

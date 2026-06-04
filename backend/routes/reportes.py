@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List, Optional
 from datetime import datetime, timezone
 from models.reporte import Reporte, ReporteCreate, ReporteUpdate, MaterialConsumido, FotoTrabajo
 from middleware.auth import get_current_user, require_roles
+from services.push_service import send_push_to_role
+from services.audit_service import log_action
 from utils.reporte_helpers import build_statistics_summary
 import os
 
@@ -18,6 +20,7 @@ def get_db():
 @router.post("", response_model=Reporte, status_code=status.HTTP_201_CREATED)
 async def create_reporte(
     reporte_data: ReporteCreate,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor", "tecnico"]))
 ):
     """
@@ -62,7 +65,38 @@ async def create_reporte(
     
     # Insertar en la base de datos
     await db.reportes.insert_one(doc)
-    
+
+    # Push a admins y supervisores: reporte completado
+    try:
+        caso = servicio.get("caso_numero", "—")
+        tipo = servicio.get("tipo_servicio_nombre", "Servicio")
+        for role in ("admin", "supervisor"):
+            await send_push_to_role(
+                role=role,
+                title=f"Reporte completado: {caso}",
+                body=f"{current_user['nombre_completo']} completó: {tipo}",
+                url="/reportes",
+                tag=f"reporte-{reporte_obj.id}",
+                exclude_user_id=current_user["id"],
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Push reporte completado fallo: {e}")
+
+    # Audit log
+    await log_action(
+        accion="crear_reporte", entidad="reporte",
+        usuario=current_user, entidad_id=reporte_obj.id,
+        detalles={
+            "servicio_id": reporte_data.servicio_id,
+            "caso_numero": servicio.get("caso_numero"),
+            "tiempo_dedicado_horas": reporte_data.tiempo_dedicado_horas,
+            "materiales_count": len(reporte_data.materiales_consumidos or []),
+            "fotos_count": len(reporte_data.fotos or []),
+        },
+        request=request,
+    )
+
     return reporte_obj
 
 @router.get("/estadisticas")

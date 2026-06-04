@@ -16,6 +16,7 @@ import ReporteDetalle from "@/pages/ReporteDetalle";
 import Configuracion from "@/pages/Configuracion";
 import Inventario from "@/pages/Inventario";
 import Chat from "@/pages/Chat";
+import AuditLogs from "@/pages/AuditLogs";
 
 // Constantes de roles para evitar inline arrays (mejor performance)
 const ADMIN_SUPERVISOR_ROLES = ["admin", "supervisor"];
@@ -127,6 +128,16 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={ADMIN_ONLY_ROLES}>
                     <Configuracion />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Logs de Auditoría - Admin y Supervisor */}
+              <Route
+                path="/audit-logs"
+                element={
+                  <ProtectedRoute allowedRoles={ADMIN_SUPERVISOR_ROLES}>
+                    <AuditLogs />
                   </ProtectedRoute>
                 }
               />

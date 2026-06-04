@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Settings,
+  Shield,
   Menu,
   X,
   Briefcase
@@ -54,6 +55,7 @@ const Sidebar = () => {
         { name: 'Inventario', icon: Package, path: '/inventory' },
         { name: 'Reportes', icon: BarChart3, path: '/reportes' },
         { name: 'Chat', icon: MessageSquare, path: '/chat' },
+        { name: 'Auditoría', icon: Shield, path: '/audit-logs' },
         { name: 'Configuración', icon: Settings, path: '/configuracion' },
       ],
       supervisor: [
@@ -62,6 +64,7 @@ const Sidebar = () => {
         { name: 'Inventario', icon: Package, path: '/inventory' },
         { name: 'Reportes', icon: BarChart3, path: '/reportes' },
         { name: 'Chat', icon: MessageSquare, path: '/chat' },
+        { name: 'Auditoría', icon: Shield, path: '/audit-logs' },
       ],
       asesor: [
         { name: 'Chat', icon: MessageSquare, path: '/chat' },

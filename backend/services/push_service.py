@@ -85,3 +85,31 @@ async def send_push_to_user(
             failed += 1
 
     return {"sent": sent, "failed": failed, "removed": removed}
+
+
+async def send_push_to_role(
+    role: str,
+    title: str,
+    body: str,
+    url: Optional[str] = None,
+    tag: Optional[str] = None,
+    exclude_user_id: Optional[str] = None,
+) -> dict:
+    """
+    Envía una notificación push a todos los usuarios de un rol específico.
+    Útil para notificar a todos los admins/supervisores de un evento.
+    """
+    db = _get_db()
+    query = {"role": role, "activo": True}
+    if exclude_user_id:
+        query["id"] = {"$ne": exclude_user_id}
+
+    users = await db.users.find(query, {"id": 1, "_id": 0}).to_list(500)
+    totals = {"sent": 0, "failed": 0, "removed": 0, "users_targeted": len(users)}
+
+    for u in users:
+        res = await send_push_to_user(u["id"], title, body, url=url, tag=tag)
+        for k in ("sent", "failed", "removed"):
+            totals[k] += res.get(k, 0)
+
+    return totals

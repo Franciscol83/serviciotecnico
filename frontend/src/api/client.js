@@ -104,4 +104,10 @@ export const chatAPI = {
   getUsuarios: () => apiClient.get('/chat/usuarios'),
 };
 
+// Audit Logs API
+export const auditAPI = {
+  getLogs: (params) => apiClient.get('/audit-logs', { params }),
+  getStats: () => apiClient.get('/audit-logs/stats'),
+};
+
 export default apiClient;

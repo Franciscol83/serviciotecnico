@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
 from typing import List, Optional
 import os
 from datetime import datetime, timezone
@@ -9,6 +9,8 @@ from models.service import (
     AgregarItemServicio, ItemServicio
 )
 from middleware.auth import get_current_user, require_roles
+from services.push_service import send_push_to_user
+from services.audit_service import log_action
 from utils.service_helpers import (
     generate_case_number,
     get_next_sequence_number,
@@ -38,6 +40,7 @@ async def get_next_caso_numero() -> str:
 @router.post("", response_model=Servicio, status_code=status.HTTP_201_CREATED)
 async def create_service(
     service_data: ServicioCreate,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor", "asesor"]))
 ):
     """
@@ -164,7 +167,40 @@ async def create_service(
     
     # Insertar en la base de datos
     await db.services.insert_one(doc)
-    
+
+    # Audit log
+    await log_action(
+        accion="crear_servicio", entidad="service",
+        usuario=current_user, entidad_id=service_obj.id,
+        detalles={
+            "caso_numero": caso_numero,
+            "tipo_servicio": tipo_servicio["nombre"],
+            "tecnico": tecnico["nombre_completo"],
+            "estado": estado_inicial,
+            "total_servicios": len(tipos_servicios_nombres),
+        },
+        request=request,
+    )
+
+    # Push notification al técnico asignado
+    try:
+        if estado_inicial == "aprobado":
+            push_title = f"Nueva orden: {caso_numero}"
+            push_body = f"Se te asignó: {tipo_servicio['nombre']}"
+        else:
+            push_title = f"Orden creada: {caso_numero}"
+            push_body = f"Pendiente de aprobación: {tipo_servicio['nombre']}"
+        await send_push_to_user(
+            user_id=service_data.tecnico_asignado_id,
+            title=push_title,
+            body=push_body,
+            url=f"/services",
+            tag=f"service-{service_obj.id}",
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Push notification fallo (no crítico): {e}")
+
     return service_obj
 
 @router.get("", response_model=List[Servicio])
@@ -404,6 +440,7 @@ async def update_service(
 @router.put("/{service_id}/aprobar", response_model=Servicio)
 async def aprobar_service(
     service_id: str,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor"]))
 ):
     """Aprobar un servicio (solo Admin y Supervisor)"""
@@ -456,12 +493,34 @@ async def aprobar_service(
         if isinstance(mod['timestamp'], str):
             mod['timestamp'] = datetime.fromisoformat(mod['timestamp'])
     
+    # Push al técnico asignado: orden aprobada
+    try:
+        await send_push_to_user(
+            user_id=updated_service["tecnico_asignado_id"],
+            title=f"Orden aprobada: {updated_service['caso_numero']}",
+            body=f"{updated_service['tipo_servicio_nombre']} - Ya puedes iniciar el servicio",
+            url="/services",
+            tag=f"service-aprobado-{service_id}",
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Push aprobacion fallo: {e}")
+
+    # Audit log
+    await log_action(
+        accion="aprobar_servicio", entidad="service",
+        usuario=current_user, entidad_id=service_id,
+        detalles={"caso_numero": updated_service.get("caso_numero")},
+        request=request,
+    )
+
     return Servicio(**updated_service)
 
 @router.put("/{service_id}/anular", response_model=Servicio)
 async def anular_service(
     service_id: str,
     anular_data: ServicioAnular,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor"]))
 ):
     """
@@ -521,6 +580,30 @@ async def anular_service(
         if isinstance(mod['timestamp'], str):
             mod['timestamp'] = datetime.fromisoformat(mod['timestamp'])
     
+    # Push al técnico: orden anulada
+    try:
+        await send_push_to_user(
+            user_id=updated_service["tecnico_asignado_id"],
+            title=f"Orden anulada: {updated_service['caso_numero']}",
+            body=f"Razón: {anular_data.razon_anulacion[:80]}",
+            url="/services",
+            tag=f"service-anulado-{service_id}",
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Push anulacion fallo: {e}")
+
+    # Audit log
+    await log_action(
+        accion="anular_servicio", entidad="service",
+        usuario=current_user, entidad_id=service_id,
+        detalles={
+            "caso_numero": updated_service.get("caso_numero"),
+            "razon": anular_data.razon_anulacion,
+        },
+        request=request,
+    )
+
     return Servicio(**updated_service)
 
 
@@ -529,6 +612,7 @@ async def anular_service(
 async def agregar_item_servicio(
     service_id: str,
     item_data: AgregarItemServicio,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor", "asesor"]))
 ):
     """
@@ -623,4 +707,28 @@ async def agregar_item_servicio(
         if isinstance(item['agregado_en'], str):
             item['agregado_en'] = datetime.fromisoformat(item['agregado_en'])
     
+    # Push al técnico: nuevo servicio agregado a su orden
+    try:
+        await send_push_to_user(
+            user_id=updated_service["tecnico_asignado_id"],
+            title=f"Servicio agregado: {updated_service['caso_numero']}",
+            body=f"Nuevo servicio: {tipo_servicio['nombre']}",
+            url="/services",
+            tag=f"service-item-{service_id}",
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Push agregar item fallo: {e}")
+
+    # Audit log
+    await log_action(
+        accion="agregar_item_servicio", entidad="service",
+        usuario=current_user, entidad_id=service_id,
+        detalles={
+            "caso_numero": updated_service.get("caso_numero"),
+            "servicio_agregado": tipo_servicio["nombre"],
+        },
+        request=request,
+    )
+
     return Servicio(**updated_service)

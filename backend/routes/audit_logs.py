@@ -4,6 +4,7 @@ Solo Admin y Supervisor pueden consultar
 """
 import csv
 import io
+import json
 from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -135,7 +136,6 @@ async def export_audit_logs(
     for log in logs:
         ts = log.get("timestamp")
         ts_str = ts.isoformat() if hasattr(ts, "isoformat") else (ts or "")
-        import json as _json
         writer.writerow([
             log.get("id", ""),
             ts_str,
@@ -147,7 +147,7 @@ async def export_audit_logs(
             "Éxito" if log.get("success", True) else "Error",
             log.get("ip") or "",
             log.get("user_agent") or "",
-            _json.dumps(log.get("detalles") or {}, ensure_ascii=False),
+            json.dumps(log.get("detalles") or {}, ensure_ascii=False),
             log.get("error_message") or "",
         ])
 

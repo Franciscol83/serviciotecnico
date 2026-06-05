@@ -38,10 +38,15 @@ Tecno Nacho SAS requiere un sistema completo PWA para gestionar servicios técni
 - ✅ PWA con service worker y manifest
 - ✅ Refactorización Services.js (1022→335 LOC) y CrearReporte.js (707→289 LOC)
 - ✅ Web Push Notifications (VAPID) + integración con chat
-- ✅ **Push Notifications extendidas: crear/aprobar/anular/agregar-item de servicios + reportes completados** [Feb 2026]
-- ✅ **Logs de Auditoría: backend + frontend con filtros, paginación, stats (`/audit-logs`)** [Feb 2026]
-- ✅ Captura automática de IP, user-agent en logs de auditoría
-- ✅ Tracking de login_success, login_failed con razón, logout
+- ✅ Push Notifications extendidas: crear/aprobar/anular/agregar-item de servicios + reportes completados
+- ✅ Logs de Auditoría: backend + frontend con filtros, paginación, stats
+- ✅ Cliente Mongo compartido (singleton) en módulos nuevos
+- ✅ Filtros con debounce en audit logs
+- ✅ Modal de detalle de log con JSON completo
+- ✅ Filtro por rango de fechas (desde/hasta) en audit logs
+- ✅ **Audit logs extendidos a Usuarios (crear/actualizar/eliminar/cambio_password)** [Feb 2026]
+- ✅ **Audit logs extendidos a Inventario (crear/actualizar/eliminar_material + ajustar_stock)** [Feb 2026]
+- ✅ **Exportación de Audit Logs a CSV (con BOM UTF-8, filtros aplicables, máx 10K registros)** [Feb 2026]
 
 ### En pausa / esperando credenciales
 - ⏸️ Sincronización SQL Server WorldOffice (esperando VPN/credenciales del usuario)
@@ -127,7 +132,8 @@ Tecno Nacho SAS requiere un sistema completo PWA para gestionar servicios técni
 | Crear reporte | Todos los admin + supervisor (excepto creador) | `reporte-{id}` |
 
 ## Acciones registradas en Audit Log
-- `login_success`, `login_failed`, `logout`
-- `crear_servicio`, `aprobar_servicio`, `anular_servicio`, `agregar_item_servicio`
-- `crear_reporte`
-- (Roadmap P1) `actualizar_usuario`, `cambio_password`, `crear_usuario`, `ajuste_inventario`
+**Auth:** `login_success`, `login_failed`, `logout`
+**Servicios:** `crear_servicio`, `aprobar_servicio`, `anular_servicio`, `agregar_item_servicio`
+**Reportes:** `crear_reporte`
+**Usuarios:** `crear_usuario`, `actualizar_usuario`, `eliminar_usuario`, `cambio_password`
+**Inventario:** `crear_material`, `actualizar_material`, `eliminar_material`, `ajustar_stock`

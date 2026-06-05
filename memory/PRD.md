@@ -137,3 +137,4 @@ Tecno Nacho SAS requiere un sistema completo PWA para gestionar servicios técni
 **Reportes:** `crear_reporte`
 **Usuarios:** `crear_usuario`, `actualizar_usuario`, `eliminar_usuario`, `cambio_password`
 **Inventario:** `crear_material`, `actualizar_material`, `eliminar_material`, `ajustar_stock`
+**Tipos de Servicio:** `crear_tipo_servicio`, `actualizar_tipo_servicio`, `eliminar_tipo_servicio`

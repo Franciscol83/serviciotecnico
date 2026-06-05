@@ -68,7 +68,7 @@ async def dashboard_analytics(
         {"$sort": {"reportes": -1}},
         {"$limit": 10},
     ]
-    top_tecnicos_raw = await db.reportes.aggregate(pipeline_tecnicos).to_list(20)
+    top_tecnicos_raw = await db.reportes.aggregate(pipeline_tecnicos).to_list(10)
     top_tecnicos = [
         {
             "tecnico_id": t["_id"].get("id"),

@@ -15,6 +15,7 @@ import {
   ChevronRight,
   X,
   Eye,
+  Download,
 } from 'lucide-react';
 
 const ACCION_LABELS = {
@@ -26,6 +27,14 @@ const ACCION_LABELS = {
   anular_servicio: { label: 'Anular servicio', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
   agregar_item_servicio: { label: 'Agregar item', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
   crear_reporte: { label: 'Crear reporte', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
+  crear_usuario: { label: 'Crear usuario', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+  actualizar_usuario: { label: 'Actualizar usuario', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  eliminar_usuario: { label: 'Eliminar usuario', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+  cambio_password: { label: 'Cambio password', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+  crear_material: { label: 'Crear material', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' },
+  actualizar_material: { label: 'Actualizar material', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  eliminar_material: { label: 'Eliminar material', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+  ajustar_stock: { label: 'Ajustar stock', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
 };
 
 const ENTIDAD_OPTIONS = [
@@ -134,6 +143,34 @@ const AuditLogs = () => {
               Historial inmutable de acciones críticas en el sistema
             </p>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                const params = new URLSearchParams();
+                if (accionFilter) params.append('accion', accionFilter);
+                if (entidadFilter) params.append('entidad', entidadFilter);
+                const base = process.env.REACT_APP_BACKEND_URL;
+                const res = await fetch(`${base}/api/audit-logs/export?${params}`, { credentials: 'include' });
+                if (!res.ok) throw new Error('Error al exportar');
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+              } catch (e) {
+                alert('Error al exportar CSV: ' + e.message);
+              }
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            data-testid="audit-export-csv-btn"
+          >
+            <Download className="w-5 h-5" />
+            <span>Exportar CSV</span>
+          </button>
         </div>
 
         {/* Stats cards */}

@@ -18,7 +18,7 @@ def get_db():
     return client[os.environ['DB_NAME']]
 
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, current_user: dict = Depends(get_current_user)):
+async def register(user_data: UserCreate, request: Request, current_user: dict = Depends(get_current_user)):
     """
     Registrar un nuevo usuario (solo Admin puede crear usuarios)
     """
@@ -51,6 +51,18 @@ async def register(user_data: UserCreate, current_user: dict = Depends(get_curre
     # Insertar en la base de datos
     await db.users.insert_one(doc)
     
+    # Audit log
+    await log_action(
+        accion="crear_usuario", entidad="user",
+        usuario=current_user, entidad_id=user_obj.id,
+        detalles={
+            "email": user_data.email,
+            "nombre_completo": user_data.nombre_completo,
+            "role": user_data.role,
+        },
+        request=request,
+    )
+
     # Retornar usuario sin password
     return User(**user_dict, id=user_obj.id, fecha_creacion=user_obj.fecha_creacion, fecha_actualizacion=user_obj.fecha_actualizacion)
 

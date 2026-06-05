@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import List, Optional
 from datetime import datetime, timezone
 from uuid import uuid4
 
 from models.inventario import Material, MaterialCreate, MaterialUpdate, AjusteStock
 from middleware.auth import get_current_user, require_roles
+from services.audit_service import log_action
 
 router = APIRouter(prefix="/inventario", tags=["inventario"])
 
@@ -54,6 +55,7 @@ async def get_materiales(
 @router.post("", response_model=Material, dependencies=[Depends(require_roles(["admin", "supervisor"]))])
 async def create_material(
     material: MaterialCreate,
+    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -106,6 +108,19 @@ async def create_material(
         "fecha": datetime.now(timezone.utc).isoformat()
     })
     
+    # Audit log
+    await log_action(
+        accion="crear_material", entidad="inventario",
+        usuario=current_user, entidad_id=material_data["id"],
+        detalles={
+            "nombre": material.nombre,
+            "tipo": material.tipo,
+            "stock_inicial": material.cantidad_stock,
+            "sku": material.codigo_sku,
+        },
+        request=request,
+    )
+
     return material_data
 
 
@@ -131,6 +146,7 @@ async def get_material(
 async def update_material(
     material_id: str,
     material_data: MaterialUpdate,
+    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -196,12 +212,26 @@ async def update_material(
     
     # Obtener y retornar material actualizado
     updated_material = await db.inventario.find_one({"id": material_id}, {"_id": 0})
+
+    # Audit log
+    if update_data:
+        await log_action(
+            accion="actualizar_material", entidad="inventario",
+            usuario=current_user, entidad_id=material_id,
+            detalles={
+                "nombre": updated_material.get("nombre"),
+                "cambios": list(update_data.keys()),
+            },
+            request=request,
+        )
+
     return updated_material
 
 
 @router.delete("/{material_id}", dependencies=[Depends(require_roles(["admin"]))])
 async def delete_material(
     material_id: str,
+    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -224,12 +254,20 @@ async def delete_material(
             detail="Material no encontrado"
         )
     
+    # Audit log
+    await log_action(
+        accion="eliminar_material", entidad="inventario",
+        usuario=current_user, entidad_id=material_id,
+        request=request,
+    )
+
     return {"message": "Material desactivado exitosamente"}
 
 
 @router.post("/{material_id}/ajustar-stock", dependencies=[Depends(require_roles(["admin", "supervisor"]))])
 async def ajustar_stock(
     material_id: str,
+    request: Request,
     cantidad: float = Query(..., description="Cantidad a agregar (positivo) o quitar (negativo)"),
     motivo: str = Query(..., min_length=3),
     current_user: dict = Depends(get_current_user)
@@ -291,6 +329,21 @@ async def ajustar_stock(
         "fecha": datetime.now(timezone.utc).isoformat()
     })
     
+    # Audit log
+    await log_action(
+        accion="ajustar_stock", entidad="inventario",
+        usuario=current_user, entidad_id=material_id,
+        detalles={
+            "nombre": material.get("nombre"),
+            "tipo_movimiento": tipo_movimiento,
+            "stock_anterior": stock_actual,
+            "stock_nuevo": stock_nuevo,
+            "ajuste": cantidad,
+            "motivo": motivo,
+        },
+        request=request,
+    )
+
     return {
         "message": "Stock ajustado exitosamente",
         "stock_anterior": stock_actual,
@@ -355,3 +408,4 @@ async def get_alertas_stock_bajo(
         "advertencias": len([a for a in alertas if a["nivel_alerta"] == "advertencia"]),
         "alertas": alertas
     }
+

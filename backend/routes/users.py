@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import List
 import os
 from datetime import datetime, timezone
@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from models.user import User, UserCreate, UserUpdate, UserChangePassword, UserInDB
 from utils.password import hash_password, verify_password
 from middleware.auth import get_current_user, require_roles
+from services.audit_service import log_action
 
 router = APIRouter(prefix="/users", tags=["Usuarios"])
 
@@ -55,7 +56,7 @@ async def get_user(user_id: str, current_user: dict = Depends(require_roles(["ad
     return User(**user)
 
 @router.put("/{user_id}", response_model=User)
-async def update_user(user_id: str, user_data: UserUpdate, current_user: dict = Depends(require_roles(["admin", "supervisor"]))):
+async def update_user(user_id: str, user_data: UserUpdate, request: Request, current_user: dict = Depends(require_roles(["admin", "supervisor"]))):
     """
     Actualizar un usuario (Admin y Supervisor)
     Solo Admin puede cambiar roles y desactivar usuarios
@@ -107,10 +108,23 @@ async def update_user(user_id: str, user_data: UserUpdate, current_user: dict = 
     if isinstance(updated_user.get('fecha_actualizacion'), str):
         updated_user['fecha_actualizacion'] = datetime.fromisoformat(updated_user['fecha_actualizacion'])
     
+    # Audit log
+    await log_action(
+        accion="actualizar_usuario", entidad="user",
+        usuario=current_user, entidad_id=user_id,
+        detalles={
+            "usuario_afectado": updated_user.get("nombre_completo"),
+            "email": updated_user.get("email"),
+            "cambios": list(update_data.keys()),
+            "activo": updated_user.get("activo"),
+        },
+        request=request,
+    )
+
     return User(**updated_user)
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: str, current_user: dict = Depends(require_roles(["admin"]))):
+async def delete_user(user_id: str, request: Request, current_user: dict = Depends(require_roles(["admin"]))):
     """
     Eliminar un usuario (solo Admin)
     """
@@ -129,10 +143,17 @@ async def delete_user(user_id: str, current_user: dict = Depends(require_roles([
             detail="Usuario no encontrado"
         )
     
+    # Audit log
+    await log_action(
+        accion="eliminar_usuario", entidad="user",
+        usuario=current_user, entidad_id=user_id,
+        request=request,
+    )
+
     return {"message": "Usuario eliminado exitosamente"}
 
 @router.put("/{user_id}/change-password")
-async def change_password(user_id: str, password_data: UserChangePassword, current_user: dict = Depends(get_current_user)):
+async def change_password(user_id: str, password_data: UserChangePassword, request: Request, current_user: dict = Depends(get_current_user)):
     """
     Cambiar contraseña de un usuario
     Los usuarios solo pueden cambiar su propia contraseña
@@ -170,4 +191,11 @@ async def change_password(user_id: str, password_data: UserChangePassword, curre
         }}
     )
     
+    # Audit log (no incluimos el password en detalles por seguridad)
+    await log_action(
+        accion="cambio_password", entidad="user",
+        usuario=current_user, entidad_id=user_id,
+        request=request,
+    )
+
     return {"message": "Contraseña actualizada exitosamente"}

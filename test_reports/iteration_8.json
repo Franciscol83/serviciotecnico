@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 8 testing complete. Validated audit logs extension to usuarios + inventario, and new CSV export endpoint. 14/14 backend tests passing. Frontend export button works (HTTP 200, correct content-type + content-disposition + filters applied) and all new actions render with Spanish labels (no raw snake_case in table).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_audit_iteration8.py",
+    "/app/test_reports/pytest/iteration_8.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/users.py and routes/inventario.py each define their own get_db() that creates a new AsyncIOMotorClient PER request (same pattern flagged in iteration 7 for audit_service). This leaks Mongo connections under load - should be a single shared client/db handle imported from utils.database.",
+    "routes/audit_logs.py: 'import json as _json' is done inside the loop body of /export — move it to module-level imports to avoid repeated imports per row.",
+    "routes/audit_logs.py /export limits to 10000 logs but does not return an indicator/header when truncation happened. Consider adding X-Truncated header or returning a warning row.",
+    "routes/users.py PUT /{user_id}/change-password forces user_id == current_user.id (any user can only change their own). This is correct, but the test_credentials.md only has admin — there is no separate tecnico/asesor account to validate role-based 403 for /audit-logs/export. The unauthenticated 401/403 check passes.",
+    "routes/inventario.py DELETE is a soft delete (sets activo=False) but audit log action is 'eliminar_material'. Naming is fine but consider documenting it's a soft delete in the log detalles for clarity."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_audit_iteration8.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100%"},
+  "test_credentials": "admin@tecnonacho.com / admin123 (httpOnly cookie auth)",
+  "seed_data_creation": "Tests create a TEST_-prefixed user (deleted at end of suite) and one TEST_ material (soft-deleted at end). Audit log entries remain for export validation. Admin password is changed temporarily and reverted within test_change_password_audit_log_excludes_password.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest file /app/backend/tests/test_audit_iteration8.py validates: (1) audit logs created for register/update/delete/change-password user actions with correct detalles structure, (2) audit logs created for inventario create/update/delete/ajustar-stock with full detalles, (3) GET /api/audit-logs/export returns text/csv;charset=utf-8 with BOM \\xef\\xbb\\xbf, correct header row, filename audit_logs_YYYYMMDD_HHMMSS.csv, supports accion/entidad/usuario_id/desde/hasta filters, returns 401/403 unauthenticated. cambio_password log verified to NOT contain password values. Frontend validated: data-testid 'audit-export-csv-btn' present, click triggers fetch to /api/audit-logs/export with credentials:include — 200 OK, applies entidad filter via query string. ACCION_LABELS dict in AuditLogs.js contains Spanish labels for all 8 new actions (crear/actualizar/eliminar_usuario, cambio_password, crear/actualizar/eliminar_material, ajustar_stock). Table rendering confirmed: no raw snake_case visible — only Spanish badge labels. Run cmd: REACT_APP_BACKEND_URL=https://soporte-hispano.preview.emergentagent.com python -m pytest backend/tests/test_audit_iteration8.py -v.  React hydration warnings in console come from Emergent platform's source-tracing instrumentation (data-ve-dynamic spans) and are unrelated to AuditLogs.js code — same as iteration 7.",
+  "rca of the issue": "N/A - no issues found. All 14 backend tests and frontend integration checks pass."
+}

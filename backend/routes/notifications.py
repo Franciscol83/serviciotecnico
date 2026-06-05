@@ -7,19 +7,13 @@ from typing import Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from middleware.auth import get_current_user
 from services.push_service import send_push_to_user
+from utils.database import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
-
-
-def get_db():
-    mongo_url = os.environ['MONGO_URL']
-    client = AsyncIOMotorClient(mongo_url)
-    return client[os.environ['DB_NAME']]
 
 
 class PushKeys(BaseModel):

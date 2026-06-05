@@ -1,22 +1,15 @@
 """
 Servicio de Auditoría - registro inmutable de acciones críticas
 """
-import os
 import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import Request
 
 from models.audit_log import AuditLog
+from utils.database import get_db
 
 logger = logging.getLogger(__name__)
-
-
-def _get_db():
-    mongo_url = os.environ['MONGO_URL']
-    client = AsyncIOMotorClient(mongo_url)
-    return client[os.environ['DB_NAME']]
 
 
 async def log_action(
@@ -34,13 +27,12 @@ async def log_action(
     Best-effort: nunca falla la request principal por errores aquí.
     """
     try:
-        db = _get_db()
+        db = get_db()
 
         ip = None
         user_agent = None
         if request is not None:
             try:
-                # X-Forwarded-For tiene prioridad en entornos detrás de proxy
                 xff = request.headers.get("x-forwarded-for")
                 if xff:
                     ip = xff.split(",")[0].strip()
@@ -64,8 +56,10 @@ async def log_action(
             error_message=error_message,
         )
 
+        # Storar datetime nativo (no ISO string) para permitir range queries
         doc = log.model_dump()
-        doc["timestamp"] = doc["timestamp"].isoformat()
+        # doc["timestamp"] ya es datetime con tz UTC desde el modelo
         await db.audit_logs.insert_one(doc)
     except Exception as e:
         logger.error(f"Audit log fallo (no crítico): {e}")
+

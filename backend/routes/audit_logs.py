@@ -2,20 +2,14 @@
 Rutas API para consultar Logs de Auditoría
 Solo Admin y Supervisor pueden consultar
 """
-import os
 from typing import Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from middleware.auth import require_roles
+from utils.database import get_db
 
 router = APIRouter(prefix="/audit-logs", tags=["Auditoría"])
-
-
-def get_db():
-    mongo_url = os.environ['MONGO_URL']
-    client = AsyncIOMotorClient(mongo_url)
-    return client[os.environ['DB_NAME']]
 
 
 @router.get("")
@@ -23,6 +17,8 @@ async def list_audit_logs(
     accion: Optional[str] = Query(None, description="Filtrar por acción (ej: 'crear_servicio')"),
     entidad: Optional[str] = Query(None, description="Filtrar por entidad (ej: 'service', 'reporte')"),
     usuario_id: Optional[str] = Query(None, description="Filtrar por usuario"),
+    desde: Optional[datetime] = Query(None, description="Fecha desde (ISO 8601)"),
+    hasta: Optional[datetime] = Query(None, description="Fecha hasta (ISO 8601)"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(require_roles(["admin", "supervisor"])),
@@ -37,6 +33,13 @@ async def list_audit_logs(
         query["entidad"] = entidad
     if usuario_id:
         query["usuario_id"] = usuario_id
+    if desde or hasta:
+        rng = {}
+        if desde:
+            rng["$gte"] = desde
+        if hasta:
+            rng["$lte"] = hasta
+        query["timestamp"] = rng
 
     total = await db.audit_logs.count_documents(query)
 
@@ -47,6 +50,12 @@ async def list_audit_logs(
         .limit(page_size)
     )
     logs = await cursor.to_list(page_size)
+
+    # Convertir datetime → ISO para JSON
+    for log in logs:
+        ts = log.get("timestamp")
+        if hasattr(ts, "isoformat"):
+            log["timestamp"] = ts.isoformat()
 
     return {
         "logs": logs,
@@ -82,3 +91,4 @@ async def audit_stats(
         "por_accion": [{"accion": a["_id"], "count": a["count"]} for a in acciones],
         "por_entidad": [{"entidad": e["_id"], "count": e["count"]} for e in entidades],
     }
+

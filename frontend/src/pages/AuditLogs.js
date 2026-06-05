@@ -13,6 +13,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  X,
+  Eye,
 } from 'lucide-react';
 
 const ACCION_LABELS = {
@@ -42,10 +44,21 @@ const AuditLogs = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [pageSize] = useState(50);
+  const [accionInput, setAccionInput] = useState('');
   const [accionFilter, setAccionFilter] = useState('');
   const [entidadFilter, setEntidadFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
+  const [selectedLog, setSelectedLog] = useState(null);
+
+  // Debounce del input de búsqueda por acción (400 ms)
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setAccionFilter(accionInput.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [accionInput]);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -167,8 +180,8 @@ const AuditLogs = () => {
                 <input
                   type="text"
                   placeholder="Acción (ej: crear_servicio, login_success)"
-                  value={accionFilter}
-                  onChange={(e) => { setAccionFilter(e.target.value); setPage(1); }}
+                  value={accionInput}
+                  onChange={(e) => setAccionInput(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                   data-testid="audit-accion-filter"
                 />
@@ -214,11 +227,17 @@ const AuditLogs = () => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Detalles</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">IP</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ver</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <tr
+                      key={log.id}
+                      onClick={() => setSelectedLog(log)}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer"
+                      data-testid={`audit-log-row-${log.id}`}
+                    >
                       <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
                         <Clock className="w-3 h-3 inline mr-1 text-gray-400" />
                         {formatTimestamp(log.timestamp)}
@@ -248,6 +267,16 @@ const AuditLogs = () => {
                             <XCircle className="w-5 h-5 text-red-500" />
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedLog(log); }}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                          data-testid={`audit-log-view-${log.id}`}
+                          title="Ver detalles"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -281,9 +310,95 @@ const AuditLogs = () => {
             </button>
           </div>
         )}
+
+        {/* Modal de detalle */}
+        {selectedLog && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedLog(null)}
+            data-testid="audit-log-detail-modal"
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Detalle del Log
+                </h3>
+                <button
+                  onClick={() => setSelectedLog(null)}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  data-testid="audit-log-detail-close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <DetailField label="ID" value={selectedLog.id} mono />
+                  <DetailField label="Fecha" value={formatTimestamp(selectedLog.timestamp)} />
+                  <DetailField label="Acción">{renderAccion(selectedLog.accion)}</DetailField>
+                  <DetailField label="Entidad" value={selectedLog.entidad} />
+                  <DetailField label="ID Entidad" value={selectedLog.entidad_id || '—'} mono />
+                  <DetailField label="Estado">
+                    {selectedLog.success ? (
+                      <span className="inline-flex items-center text-green-700 dark:text-green-400">
+                        <CheckCircle className="w-4 h-4 mr-1" /> Éxito
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-red-700 dark:text-red-400">
+                        <XCircle className="w-4 h-4 mr-1" /> Error
+                      </span>
+                    )}
+                  </DetailField>
+                  <DetailField label="Usuario" value={selectedLog.usuario_nombre || '—'} />
+                  <DetailField label="Rol" value={selectedLog.usuario_role || '—'} />
+                  <DetailField label="ID Usuario" value={selectedLog.usuario_id || '—'} mono />
+                  <DetailField label="IP" value={selectedLog.ip || '—'} mono />
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">User Agent</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 break-all bg-gray-50 dark:bg-gray-700/50 p-2 rounded">
+                    {selectedLog.user_agent || '—'}
+                  </p>
+                </div>
+
+                {selectedLog.error_message && (
+                  <div>
+                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase mb-1">Mensaje de Error</p>
+                    <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                      {selectedLog.error_message}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Detalles</p>
+                  <pre className="text-xs text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 p-3 rounded overflow-x-auto">
+{JSON.stringify(selectedLog.detalles || {}, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
 };
+
+const DetailField = ({ label, value, children, mono = false }) => (
+  <div>
+    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">{label}</p>
+    {children ? (
+      children
+    ) : (
+      <p className={`text-sm text-gray-900 dark:text-white ${mono ? 'font-mono break-all' : ''}`}>{value}</p>
+    )}
+  </div>
+);
 
 export default AuditLogs;

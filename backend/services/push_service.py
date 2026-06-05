@@ -6,15 +6,10 @@ import json
 import logging
 from typing import Optional
 from pywebpush import webpush, WebPushException
-from motor.motor_asyncio import AsyncIOMotorClient
+
+from utils.database import get_db
 
 logger = logging.getLogger(__name__)
-
-
-def _get_db():
-    mongo_url = os.environ['MONGO_URL']
-    client = AsyncIOMotorClient(mongo_url)
-    return client[os.environ['DB_NAME']]
 
 
 def _get_vapid_config():
@@ -39,7 +34,7 @@ async def send_push_to_user(
     Returns:
         dict con {sent: int, failed: int, removed: int}
     """
-    db = _get_db()
+    db = get_db()
     vapid = _get_vapid_config()
 
     if not vapid["public_key"] or not vapid["private_key"]:
@@ -99,7 +94,7 @@ async def send_push_to_role(
     Envía una notificación push a todos los usuarios de un rol específico.
     Útil para notificar a todos los admins/supervisores de un evento.
     """
-    db = _get_db()
+    db = get_db()
     query = {"role": role, "activo": True}
     if exclude_user_id:
         query["id"] = {"$ne": exclude_user_id}

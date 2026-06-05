@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import { reportesAPI, servicesAPI } from '@/api/client';
+import AnalyticsCharts from '@/components/dashboard/AnalyticsCharts';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -302,6 +303,13 @@ const Dashboard = () => {
             </table>
           </div>
         </div>
+
+        {/* Analytics avanzado - solo admin/supervisor */}
+        {['admin', 'supervisor'].includes(user?.role) && (
+          <div className="mt-8">
+            <AnalyticsCharts />
+          </div>
+        )}
       </div>
     </MainLayout>
   );

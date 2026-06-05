@@ -110,4 +110,9 @@ export const auditAPI = {
   getStats: () => apiClient.get('/audit-logs/stats'),
 };
 
+// Analytics API
+export const analyticsAPI = {
+  getDashboard: (dias = 30) => apiClient.get('/analytics/dashboard', { params: { dias } }),
+};
+
 export default apiClient;

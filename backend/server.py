@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Importar rutas
-from routes import auth, users, services, service_types, reportes, inventario, worldoffice, chat, notifications, audit_logs
+from routes import auth, users, services, service_types, reportes, inventario, worldoffice, chat, notifications, audit_logs, analytics
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -86,6 +86,7 @@ api_router.include_router(worldoffice.router)
 api_router.include_router(chat.router)
 api_router.include_router(notifications.router)
 api_router.include_router(audit_logs.router)
+api_router.include_router(analytics.router)
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -217,6 +218,27 @@ async def message_read(sid, data):
             await sio.emit('message_read_receipt', {'mensaje_id': mensaje_id}, room=remitente_online['socket_id'])
     except Exception as e:
         logger.error(f"Error en message_read: {e}")
+
+@app.on_event("startup")
+async def startup_create_indexes():
+    """Crear índices de DB en startup (idempotente). Mejora performance bajo escala."""
+    try:
+        await db.audit_logs.create_index([("timestamp", -1)])
+        await db.audit_logs.create_index("accion")
+        await db.audit_logs.create_index("entidad")
+        await db.audit_logs.create_index("usuario_id")
+        await db.audit_logs.create_index([("entidad", 1), ("timestamp", -1)])
+        await db.services.create_index([("fecha_creacion", -1)])
+        await db.services.create_index("estado")
+        await db.services.create_index("tecnico_asignado_id")
+        await db.reportes.create_index([("fecha_creacion", -1)])
+        await db.reportes.create_index("tecnico_id")
+        await db.push_subscriptions.create_index("user_id")
+        await db.push_subscriptions.create_index("endpoint", unique=True)
+        logger.info("Índices de DB verificados/creados correctamente")
+    except Exception as e:
+        logger.error(f"Error creando índices: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

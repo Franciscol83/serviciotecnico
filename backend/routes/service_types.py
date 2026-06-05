@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import List
 import os
 from datetime import datetime, timezone
 
 from models.service_type import ServiceType, ServiceTypeCreate, ServiceTypeUpdate
 from middleware.auth import get_current_user, require_roles
+from services.audit_service import log_action
 
 router = APIRouter(prefix="/service-types", tags=["Tipos de Servicios"])
 
@@ -18,6 +19,7 @@ def get_db():
 @router.post("", response_model=ServiceType, status_code=status.HTTP_201_CREATED)
 async def create_service_type(
     service_type_data: ServiceTypeCreate,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor"]))
 ):
     """
@@ -49,6 +51,14 @@ async def create_service_type(
     # Insertar en la base de datos
     await db.service_types.insert_one(doc)
     
+    # Audit log
+    await log_action(
+        accion="crear_tipo_servicio", entidad="service_type",
+        usuario=current_user, entidad_id=service_type_obj.id,
+        detalles={"nombre": service_type_data.nombre},
+        request=request,
+    )
+
     return service_type_obj
 
 @router.get("", response_model=List[ServiceType])
@@ -105,6 +115,7 @@ async def get_service_type(
 async def update_service_type(
     service_type_id: str,
     service_type_data: ServiceTypeUpdate,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin", "supervisor"]))
 ):
     """
@@ -157,11 +168,20 @@ async def update_service_type(
     if isinstance(updated.get('fecha_actualizacion'), str):
         updated['fecha_actualizacion'] = datetime.fromisoformat(updated['fecha_actualizacion'])
     
+    # Audit log
+    await log_action(
+        accion="actualizar_tipo_servicio", entidad="service_type",
+        usuario=current_user, entidad_id=service_type_id,
+        detalles={"nombre": updated.get("nombre"), "cambios": list(update_data.keys())},
+        request=request,
+    )
+
     return ServiceType(**updated)
 
 @router.delete("/{service_type_id}")
 async def delete_service_type(
     service_type_id: str,
+    request: Request,
     current_user: dict = Depends(require_roles(["admin"]))
 ):
     """
@@ -185,4 +205,11 @@ async def delete_service_type(
             detail="Tipo de servicio no encontrado"
         )
     
+    # Audit log
+    await log_action(
+        accion="eliminar_tipo_servicio", entidad="service_type",
+        usuario=current_user, entidad_id=service_type_id,
+        request=request,
+    )
+
     return {"message": "Tipo de servicio eliminado exitosamente"}

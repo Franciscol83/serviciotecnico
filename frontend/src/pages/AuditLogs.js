@@ -35,7 +35,11 @@ const ACCION_LABELS = {
   actualizar_material: { label: 'Actualizar material', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
   eliminar_material: { label: 'Eliminar material', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
   ajustar_stock: { label: 'Ajustar stock', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
+  crear_tipo_servicio: { label: 'Crear tipo servicio', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300' },
+  actualizar_tipo_servicio: { label: 'Actualizar tipo servicio', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  eliminar_tipo_servicio: { label: 'Eliminar tipo servicio', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
 };
+
 
 const ENTIDAD_OPTIONS = [
   { value: '', label: 'Todas las entidades' },
@@ -44,6 +48,7 @@ const ENTIDAD_OPTIONS = [
   { value: 'reporte', label: 'Reportes' },
   { value: 'user', label: 'Usuarios' },
   { value: 'inventario', label: 'Inventario' },
+  { value: 'service_type', label: 'Tipos de servicio' },
 ];
 
 const AuditLogs = () => {
@@ -56,6 +61,8 @@ const AuditLogs = () => {
   const [accionInput, setAccionInput] = useState('');
   const [accionFilter, setAccionFilter] = useState('');
   const [entidadFilter, setEntidadFilter] = useState('');
+  const [desdeFilter, setDesdeFilter] = useState('');
+  const [hastaFilter, setHastaFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [selectedLog, setSelectedLog] = useState(null);
@@ -75,6 +82,8 @@ const AuditLogs = () => {
       const params = { page, page_size: pageSize };
       if (accionFilter) params.accion = accionFilter;
       if (entidadFilter) params.entidad = entidadFilter;
+      if (desdeFilter) params.desde = `${desdeFilter}T00:00:00`;
+      if (hastaFilter) params.hasta = `${hastaFilter}T23:59:59`;
       const { data } = await auditAPI.getLogs(params);
       setLogs(data.logs);
       setTotal(data.total);
@@ -84,7 +93,7 @@ const AuditLogs = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, accionFilter, entidadFilter]);
+  }, [page, pageSize, accionFilter, entidadFilter, desdeFilter, hastaFilter]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -149,6 +158,8 @@ const AuditLogs = () => {
                 const params = new URLSearchParams();
                 if (accionFilter) params.append('accion', accionFilter);
                 if (entidadFilter) params.append('entidad', entidadFilter);
+                if (desdeFilter) params.append('desde', `${desdeFilter}T00:00:00`);
+                if (hastaFilter) params.append('hasta', `${hastaFilter}T23:59:59`);
                 const base = process.env.REACT_APP_BACKEND_URL;
                 const res = await fetch(`${base}/api/audit-logs/export?${params}`, { credentials: 'include' });
                 if (!res.ok) throw new Error('Error al exportar');
@@ -234,6 +245,35 @@ const AuditLogs = () => {
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+            <input
+              type="date"
+              value={desdeFilter}
+              onChange={(e) => { setDesdeFilter(e.target.value); setPage(1); }}
+              className="sm:w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+              title="Desde"
+              data-testid="audit-desde-filter"
+            />
+            <input
+              type="date"
+              value={hastaFilter}
+              onChange={(e) => { setHastaFilter(e.target.value); setPage(1); }}
+              className="sm:w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
+              title="Hasta"
+              data-testid="audit-hasta-filter"
+            />
+            {(desdeFilter || hastaFilter || accionFilter || entidadFilter) && (
+              <button
+                onClick={() => {
+                  setAccionInput(''); setAccionFilter('');
+                  setEntidadFilter(''); setDesdeFilter(''); setHastaFilter('');
+                  setPage(1);
+                }}
+                className="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                data-testid="audit-clear-filters"
+              >
+                Limpiar
+              </button>
+            )}
           </div>
           <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             <Filter className="w-4 h-4 inline mr-1" />
